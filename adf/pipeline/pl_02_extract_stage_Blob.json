@@ -82,7 +82,6 @@
 								},
 								"enableStaging": false,
 								"enableSkipIncompatibleRow": true,
-								"validateDataConsistency": true,
 								"logSettings": {
 									"enableCopyActivityLog": true,
 									"copyActivityLogSettings": {
@@ -96,22 +95,8 @@
 										},
 										"path": "logs"
 									}
-								},
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
-									}
 								}
 							},
-							"inputs": [
-								{
-									"referenceName": "ds_oracle_inbound",
-									"type": "DatasetReference"
-								}
-							],
 							"outputs": [
 								{
 									"referenceName": "ds_adls_parquet_target",
