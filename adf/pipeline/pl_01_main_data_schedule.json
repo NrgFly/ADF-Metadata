@@ -1,0 +1,821 @@
+{
+	"name": "pl_01_main_data_schedule",
+	"properties": {
+		"activities": [
+			{
+				"name": "List of data feeds",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get Trigger Start Hour",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get Trigger Start Min",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT  s.ScheduleId      \n\t  , s.ScheduleDefinition\n\t  , f.DataFeedId\n\t  , f.DataFeedName\n\t  , f.DataFeedDescription\n\t  , f.SourceSystem\n\t  , f.DataFeedType\n\t  , f.TimestampColumn\n\t  , f.TimestampValue\n  FROM cfg.Schedule s join cfg.DataFeed f on s.DataFeedId = f.DataFeedId\n  where s.Enabled = 1 \n      and f.Enabled = 1",
+						"queryTimeout": "00:02:00",
+						"isolationLevel": "ReadCommitted",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Get Trigger Start Hour",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_trigger_hour",
+					"value": {
+						"value": "@substring(\n  convertTimeZone(pipeline().parameters.par_trigger_start_time, 'UTC', 'Eastern Standard Time', 'u')\n, 11\n, 2\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get Trigger Start Min",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_trigger_minute",
+					"value": {
+						"value": "@substring(\n  convertTimeZone(pipeline().parameters.par_trigger_start_time, 'UTC', 'Eastern Standard Time', 'u')\n, 14\n, 2\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Filter Hourly Feeds",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "List of data feeds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('List of data feeds').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(json(item().ScheduleDefinition).frequency,'hourly')\n \n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Filter Daily Feeds",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "List of data feeds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('List of data feeds').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@and(\n    equals(json(item().ScheduleDefinition).frequency,'daily')\n   , and(\n          equals(int(variables('var_trigger_hour')),json(item().ScheduleDefinition).hour)\n        , equals(int(variables('var_trigger_minute')),json(item().ScheduleDefinition).minute)\n        )\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "New master batch",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set Feeds to Process",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\n  not(empty(variables('var_feeds_to_process')))\n, or(\n      equals(variables('var_master_last_status'),'Success')\n    , equals(variables('var_master_last_status'),'Retired')\n) \n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Create Feed Dependency Execution",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Get Master Batch ID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[cfg].[CreateFeedDependencyExecution]",
+									"storedProcedureParameters": {
+										"master_batch_id": {
+											"type": "Int32",
+											"value": {
+												"value": "@int(variables('var_master_batch_id'))",
+												"type": "Expression"
+											}
+										},
+										"master_batch_ts": {
+											"type": "String",
+											"value": {
+												"value": "@variables('var_master_batch_ts')",
+												"type": "Expression"
+											}
+										},
+										"master_batch_type": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.par_process_type",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Get Master Batch ID",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Log Master Batch Execution",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_master_batch_id",
+								"value": {
+									"value": "@string(\nactivity('Log Master Batch Execution').output.firstRow.master_batch_id\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Log Master Batch Execution",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Get Master Batch TS",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[cfg].[CreateMasterBatch]",
+									"storedProcedureParameters": {
+										"master_batch_ts": {
+											"type": "String",
+											"value": {
+												"value": "@variables('var_master_batch_ts')",
+												"type": "Expression"
+											}
+										},
+										"master_batch_type": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.par_process_type",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Get Master Batch TS",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_master_batch_ts",
+								"value": {
+									"value": "@substring(\nreplace(\nreplace(\nreplace(pipeline().parameters.par_trigger_start_time, '-', '')\n, 'T', '')\n, ':', '')\n, 0, 14)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Feed loop process New Batch",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Create Feed Dependency Execution",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_01_feed_loop_process",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_master_batch_id": {
+										"value": "@variables('var_master_batch_id')",
+										"type": "Expression"
+									},
+									"par_feed_array": {
+										"value": "@variables('var_feeds_to_process')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Saving Master Batch Status",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Saving Master Batch ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Filter Daily Feeds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Filter Hourly Feeds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_master_last_status",
+					"value": {
+						"value": "@activity('Last Master Batch').output.firstRow.MasterBatchStatus",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Failed master batch",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set Feeds to Process",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\n  not(empty(variables('var_feeds_to_process')))\n, equals(variables('var_master_last_status'),'Failed')\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Feed loop process - Failed feeds",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Filter Failed feed definition",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_01_feed_loop_process",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_master_batch_id": {
+										"value": "@variables('var_master_batch_id')",
+										"type": "Expression"
+									},
+									"par_feed_array": {
+										"value": "@activity('Filter Failed feed definition').output.value",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Get Failed Feeds",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select dl.DataFeedId\nfrom cfg.[DataFeedDependencyExecutionLog] dd\njoin cfg.DataFeedExecutionLog dl\n  on dd.feed_batch_id = dl.batch_id\nwhere master_batch_id = @{variables('var_master_batch_id')}\n  and left(DataObjectChild, 3) = 'stg'\n  and FeedDependencyStatus = 'Failed'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Set Failed Feed Payload",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Failed Feeds",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_failed_feeds",
+								"value": {
+									"value": "@split(\n  replace(\n  replace(\n  replace(\n  replace(\n  replace(\n  string(activity('Get Failed Feeds').output.value)\n  , '\"DataFeedId\":', '')\n  , '{', '')\n  , '}', '')\n  , '[', '')\n  , ']', '')\n, ',')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Filter Failed feed definition",
+							"type": "Filter",
+							"dependsOn": [
+								{
+									"activity": "Set Failed Feed Payload",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"items": {
+									"value": "@activity('Filter Daily Feeds').output.value",
+									"type": "Expression"
+								},
+								"condition": {
+									"value": "@contains(variables('var_failed_feeds'), string(item().DataFeedId))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Get Failed EDW table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Feed loop process - Failed feeds",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select ddp.master_batch_id, ddp.DataObjectParent as data_object_parent, (select top 1 ddc.DataObjectChild from cfg.[DataFeedDependencyExecutionLog] ddc where ddp.master_batch_id = ddc.master_batch_id and ddp.DataObjectChild = ddc.DataObjectParent and ddc.DataObjectParent <> ddc.DataObjectChild) as data_object_child\nfrom cfg.[DataFeedDependencyExecutionLog] ddp\nwhere ddp.master_batch_id = @{variables('var_master_batch_id')}\n  and left(ddp.DataObjectChild, 3) = 'edw'\n  and ddp.FeedDependencyStatus = 'Failed'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "EDW loop process",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Get Failed EDW table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_01_edw_loop_process",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_edw_tables": {
+										"value": "@activity('Get Failed EDW table').output.value",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Saving Master Batch ID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Last Master Batch",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_master_batch_id",
+					"value": {
+						"value": "@string(activity('Last Master Batch').output.firstRow.master_batch_id)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Last Master Batch",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select top 1 master_batch_id, MasterBatchStatus from (\nselect master_batch_id, MasterBatchStatus from (select top 1 master_batch_id, MasterBatchStatus from [cfg].[MasterBatchExecutionLog] where isnull(master_batch_type, 'Daily') = '@{pipeline().parameters.par_process_type}' order by master_batch_id desc) data\nUNION ALL\nselect 0 as master_batch_id, 'Success' as MasterBatchStatus\n) data \norder by master_batch_id desc",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SP Update Master Batch Failure 01",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "New master batch",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateMasterBatch]",
+					"storedProcedureParameters": {
+						"master_batch_id": {
+							"value": {
+								"value": "@int(variables('var_master_batch_id'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"MasterBatchStatus": {
+							"value": "Failed",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP Update Master Batch Failure 02",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Failed master batch",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateMasterBatch]",
+					"storedProcedureParameters": {
+						"master_batch_id": {
+							"value": {
+								"value": "@int(variables('var_master_batch_id'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"MasterBatchStatus": {
+							"value": "Failed",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set Feeds to Process",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Saving Master Batch Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_feeds_to_process",
+					"value": {
+						"value": "@if(and(\n        equals(pipeline().parameters.par_process_type, 'hourly')\n        , greater(activity('Filter Hourly Feeds').output.FilteredItemsCount, 0)\n        )\n    , activity('Filter Hourly Feeds').output.value\n    , if(and(\n            equals(pipeline().parameters.par_process_type, 'daily')\n            , greater(activity('Filter Daily Feeds').output.FilteredItemsCount, 0)\n            )\n            , activity('Filter Daily Feeds').output.value\n            , json('[]')\n        )\n    )",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Check Current Master Batch",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Failed master batch",
+						"dependencyConditions": [
+							"Completed"
+						]
+					},
+					{
+						"activity": "New master batch",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select top 1 master_batch_id, MasterBatchStatus from (\nselect master_batch_id, MasterBatchStatus from (select top 1 master_batch_id, MasterBatchStatus from [cfg].[MasterBatchExecutionLog] where isnull(master_batch_type, 'Daily') = '@{pipeline().parameters.par_process_type}' order by master_batch_id desc) data\nUNION ALL\nselect 0 as master_batch_id, 'Success' as MasterBatchStatus\n) data \norder by master_batch_id desc",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Master Batch success - Daily DSL",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Check Current Master Batch",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\n    equals(pipeline().parameters.par_process_type, 'daily')\n    , equals(activity('Check Current Master Batch').output.firstRow.MasterBatchStatus, 'Success')\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "pl_04_dsl_main",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_04_data_serving_main",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_batch_datetime": {
+										"value": "@addToTime(\n    pipeline().parameters.par_trigger_start_time\n    , 3\n    , 'Hour'\n)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "pl_04_report_pbi_main",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Check Current Master Batch",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_04_report_pbi_main",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"par_process_type": {
+							"value": "@pipeline().parameters.par_process_type",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"par_trigger_start_time": {
+				"type": "string",
+				"defaultValue": "2023-04-03T05:00:00Z"
+			},
+			"par_process_type": {
+				"type": "string",
+				"defaultValue": "daily"
+			}
+		},
+		"variables": {
+			"var_trigger_hour": {
+				"type": "String"
+			},
+			"var_trigger_minute": {
+				"type": "String"
+			},
+			"var_failed_feeds": {
+				"type": "Array"
+			},
+			"var_master_batch_ts": {
+				"type": "String"
+			},
+			"var_master_batch_id": {
+				"type": "String"
+			},
+			"var_master_last_status": {
+				"type": "String"
+			},
+			"var_failed_edw_tables": {
+				"type": "Array"
+			},
+			"var_feeds_to_process": {
+				"type": "Array"
+			},
+			"var_master_current_status": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Data Processing"
+		},
+		"annotations": []
+	}
+}

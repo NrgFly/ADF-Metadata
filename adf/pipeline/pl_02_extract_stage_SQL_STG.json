@@ -1,0 +1,517 @@
+{
+	"name": "pl_02_extract_stage_SQL_STG",
+	"properties": {
+		"activities": [
+			{
+				"name": "Just a Container",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(1, 1)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "pl_02_extract_stage validate",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Set rowsSkipped",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Copy Raw SQL to Stage SQL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_02_extract_stage_validate",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_rowsSkipped": {
+										"value": "@int(variables('var_rowsSkipped'))",
+										"type": "Expression"
+									},
+									"par_execution_status": {
+										"value": "@activity('Copy Raw SQL to Stage SQL').output.executionDetails[0].status",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Set rowsCopied",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy Raw SQL to Stage SQL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rowsCopied",
+								"value": {
+									"value": "@string(activity('Copy Raw SQL to Stage SQL').output.rowsCopied)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set rowsRead",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy Raw SQL to Stage SQL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rowsRead",
+								"value": {
+									"value": "@string(activity('Copy Raw SQL to Stage SQL').output.rowsRead)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set rowsSkipped",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy Raw SQL to Stage SQL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rowsSkipped",
+								"value": {
+									"value": "@string(activity('Copy Raw SQL to Stage SQL').output.rowsSkipped)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set feed_stage_log_id",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Log Feed Stage Execution",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_feed_stage_log_id",
+								"value": {
+									"value": "@string(activity('Log Feed Stage Execution').output.firstRow.feed_stage_log_id)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Lookup Mapping Columns",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set Raw Stage Query",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[cfg].[GetColumnMapping]",
+									"storedProcedureParameters": {
+										"DataFeedStageId": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.par_datafeed_stage[0].DataFeedStageId",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Copy Raw SQL to Stage SQL",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Lookup Mapping Columns",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set feed_stage_log_id",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.02:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@variables('var_raw_stage_query')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": {
+										"value": "IF ('@{pipeline().parameters.par_DataFeedType}'='custom')  truncate table @{pipeline().parameters.par_datafeed_stage[0].DestinationSchema}.@{pipeline().parameters.par_datafeed_stage[0].DestinationEntity};",
+										"type": "Expression"
+									},
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": true,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"parallelCopies": 24,
+								"enableSkipIncompatibleRow": true,
+								"validateDataConsistency": true,
+								"logSettings": {
+									"enableCopyActivityLog": true,
+									"copyActivityLogSettings": {
+										"logLevel": "Warning",
+										"enableReliableLogging": false
+									},
+									"logLocationSettings": {
+										"linkedServiceName": {
+											"referenceName": "ls_adls_penbi",
+											"type": "LinkedServiceReference"
+										},
+										"path": "logs"
+									}
+								},
+								"dataIntegrationUnits": 16,
+								"translator": {
+									"value": "@json(activity('Lookup Mapping Columns').output.firstRow.json_output)",
+									"type": "Expression"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_AzureSql_table",
+									"type": "DatasetReference",
+									"parameters": {
+										"schema": {
+											"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationSchema",
+											"type": "Expression"
+										},
+										"table": {
+											"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationEntity",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Set Raw Stage Query",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Log Feed Stage Execution",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_raw_stage_query",
+								"value": {
+									"value": "select * \nfrom @{pipeline().parameters.par_datafeed_stage[0].SourceSchema}.@{pipeline().parameters.par_datafeed_stage[0].SourceEntity}\nwhere batch_id = @{pipeline().parameters.par_batch_id}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Log Feed Stage Execution",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[cfg].[CreateFeedStageExecution]",
+									"storedProcedureParameters": {
+										"batch_id": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.par_batch_id",
+												"type": "Expression"
+											}
+										},
+										"batch_ts": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.par_batch_ts",
+												"type": "Expression"
+											}
+										},
+										"DataFeedId": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.par_DataFeedId",
+												"type": "Expression"
+											}
+										},
+										"DataStage": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.par_datafeed_stage[0].DataStage",
+												"type": "Expression"
+											}
+										},
+										"PipelineName": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											}
+										},
+										"PipelineRunID": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SP Update Feed Stage Success",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Just a Container",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedStageExecutionLog]",
+					"storedProcedureParameters": {
+						"feed_stage_log_id": {
+							"value": {
+								"value": "@int(variables('var_feed_stage_log_id'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@int(variables('var_rowsCopied'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@int(variables('var_rowsRead'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"UpdateStatus": {
+							"value": "Success",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP Update Feed Stage Failure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Just a Container",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedStageExecutionLog]",
+					"storedProcedureParameters": {
+						"feed_stage_log_id": {
+							"value": {
+								"value": "@int(variables('var_feed_stage_log_id'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@int(variables('var_rowsCopied'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@int(variables('var_rowsRead'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"UpdateStatus": {
+							"value": "Failed",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"par_SourceSystem": {
+				"type": "string"
+			},
+			"par_batch_id": {
+				"type": "int"
+			},
+			"par_batch_ts": {
+				"type": "string"
+			},
+			"par_DataFeedId": {
+				"type": "int"
+			},
+			"par_datafeed_stage": {
+				"type": "array"
+			},
+			"par_DataFeedType": {
+				"type": "string"
+			},
+			"par_TimestampColumn": {
+				"type": "string"
+			},
+			"par_TimestampValue": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"var_raw_stage_query": {
+				"type": "String"
+			},
+			"var_rowsCopied": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsSkipped": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsRead": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_feed_stage_log_id": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Data Extract"
+		},
+		"annotations": []
+	}
+}

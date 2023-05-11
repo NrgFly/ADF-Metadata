@@ -1,0 +1,422 @@
+{
+	"name": "pl_01_feed_loop_process",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach Active DataFeed",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.par_feed_array",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 20,
+					"activities": [
+						{
+							"name": "Execute Extract Source to Staging",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Log Feed Execution",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_02_extract_stages",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_DataFeedId": {
+										"value": "@item().DataFeedId",
+										"type": "Expression"
+									},
+									"par_batch_ts": {
+										"value": "@activity('Log Feed Execution').output.firstRow.batch_ts",
+										"type": "Expression"
+									},
+									"par_batch_id": {
+										"value": "@activity('Log Feed Execution').output.firstRow.batch_id",
+										"type": "Expression"
+									},
+									"par_DataFeedType": {
+										"value": "@item().DataFeedType",
+										"type": "Expression"
+									},
+									"par_SourceSystem": {
+										"value": "@item().SourceSystem",
+										"type": "Expression"
+									},
+									"par_TimestampColumn": {
+										"value": "@item().TimestampColumn",
+										"type": "Expression"
+									},
+									"par_TimestampValue": {
+										"value": "@item().TimestampValue",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Log Feed Execution",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[cfg].[CreateFeedExecution]",
+									"storedProcedureParameters": {
+										"DataFeedId": {
+											"type": "Int32",
+											"value": {
+												"value": "@item().DataFeedId",
+												"type": "Expression"
+											}
+										},
+										"ScheduleId": {
+											"type": "Int32",
+											"value": {
+												"value": "@item().ScheduleId",
+												"type": "Expression"
+											}
+										},
+										"master_batch_id": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.par_master_batch_id",
+												"type": "Expression"
+											}
+										},
+										"ScheduleDefinition": {
+											"type": "String",
+											"value": {
+												"value": "@item().ScheduleDefinition",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
+							"name": "SP Update Feed Log Success",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Execute Extract Source to Staging",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateFeedExecutionLog]",
+								"storedProcedureParameters": {
+									"batch_id": {
+										"value": {
+											"value": "@activity('Log Feed Execution').output.firstRow.batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"UpdateStatus": {
+										"value": "Success",
+										"type": "String"
+									},
+									"master_batch_id": {
+										"value": {
+											"value": "@pipeline().parameters.par_master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"ScheduleDefinition": {
+										"value": {
+											"value": "@item().ScheduleDefinition",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "SP Update Feed Log Failure 01",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Log Feed Execution",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateFeedExecutionLog]",
+								"storedProcedureParameters": {
+									"batch_id": {
+										"value": {
+											"value": "@activity('Log Feed Execution').output.firstRow.batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"UpdateStatus": {
+										"value": "Failed",
+										"type": "String"
+									},
+									"master_batch_id": {
+										"value": {
+											"value": "@pipeline().parameters.par_master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"ScheduleDefinition": {
+										"value": {
+											"value": "@item().ScheduleDefinition",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "pl_03_load_edw_tables_level_1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Get STG Child Object Name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_03_load_edw_tables_level_1",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_master_batch_id": {
+										"value": "@pipeline().parameters.par_master_batch_id",
+										"type": "Expression"
+									},
+									"par_data_object_child": {
+										"value": "@concat(\n  activity('Get STG Child Object Name').output.firstRow.DestinationSchema\n, '.'    \n, activity('Get STG Child Object Name').output.firstRow.DestinationEntity\n)",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Get STG Child Object Name",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "SP Update Feed Log Success",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select DestinationSchema, DestinationEntity from [cfg].[DataFeedStages] where DataStage = 'L1_SQL_STG' and DataFeedId = @{item().DataFeedId}",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "SP Update Feed Log Failure 02",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Execute Extract Source to Staging",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateFeedExecutionLog]",
+								"storedProcedureParameters": {
+									"batch_id": {
+										"value": {
+											"value": "@activity('Log Feed Execution').output.firstRow.batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"UpdateStatus": {
+										"value": "Failed",
+										"type": "String"
+									},
+									"master_batch_id": {
+										"value": {
+											"value": "@pipeline().parameters.par_master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"ScheduleDefinition": {
+										"value": {
+											"value": "@item().ScheduleDefinition",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "SP Update Feed Log Failure 03",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "SP Update Feed Log Success",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateFeedExecutionLog]",
+								"storedProcedureParameters": {
+									"batch_id": {
+										"value": {
+											"value": "@activity('Log Feed Execution').output.firstRow.batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"UpdateStatus": {
+										"value": "Failed",
+										"type": "String"
+									},
+									"master_batch_id": {
+										"value": {
+											"value": "@pipeline().parameters.par_master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"ScheduleDefinition": {
+										"value": {
+											"value": "@item().ScheduleDefinition",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"par_master_batch_id": {
+				"type": "int"
+			},
+			"par_feed_array": {
+				"type": "array"
+			}
+		},
+		"folder": {
+			"name": "Data Processing"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,43 @@
+{
+	"name": "pl_02_extract_stage_validate",
+	"properties": {
+		"activities": [
+			{
+				"name": "If Success but RowsSkipped",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\nequals(pipeline().parameters.par_execution_status, 'Succeeded')\n, greater(pipeline().parameters.par_rowsSkipped, 0)\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Fail Code Return - Skipped Rows",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "Activity execution was successfull but Skipped Rows were found",
+								"errorCode": "500"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"par_rowsSkipped": {
+				"type": "int"
+			},
+			"par_execution_status": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Data Extract"
+		},
+		"annotations": []
+	}
+}

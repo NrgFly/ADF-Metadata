@@ -1,0 +1,549 @@
+{
+	"name": "pl_02_extract_stages",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup DataFeedStage",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select * from [cfg].[DataFeedStages]\nwhere DataFeedId = @{pipeline().parameters.par_DataFeedId}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Get Feed Stages",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup DataFeedStage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup DataFeedStage').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Check Feed Stage",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@item().DataStage",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "L0_Blob",
+										"activities": [
+											{
+												"name": "Set L0_Blob",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_datafeed_stage_L0_Blob",
+													"value": {
+														"value": "@array(item())",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "L0_SQL_RAW",
+										"activities": [
+											{
+												"name": "Set L0_SQL_RAW",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_datafeed_stage_L0_SQL_RAW",
+													"value": {
+														"value": "@array(item())",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "L1_SQL_STG",
+										"activities": [
+											{
+												"name": "Set L1_SQL_STG",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_datafeed_stage_L1_SQL_STG",
+													"value": {
+														"value": "@array(item())",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "L2_SQL_EDW",
+										"activities": [
+											{
+												"name": "Set L2_SQL_EDW",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_datafeed_stage_L2_SQL_EDW",
+													"value": {
+														"value": "@array(item())",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If L0_Blob",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Feed Stages",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(variables('var_datafeed_stage_L0_Blob')))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "pl_02_extract_stage_Blob",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_02_extract_stage_Blob",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_SourceSystem": {
+										"value": "@pipeline().parameters.par_SourceSystem",
+										"type": "Expression"
+									},
+									"par_batch_id": {
+										"value": "@pipeline().parameters.par_batch_id",
+										"type": "Expression"
+									},
+									"par_batch_ts": {
+										"value": "@pipeline().parameters.par_batch_ts",
+										"type": "Expression"
+									},
+									"par_DataFeedId": {
+										"value": "@pipeline().parameters.par_DataFeedId",
+										"type": "Expression"
+									},
+									"par_datafeed_stage": {
+										"value": "@variables('var_datafeed_stage_L0_Blob')",
+										"type": "Expression"
+									},
+									"par_DataFeedType": {
+										"value": "@pipeline().parameters.par_DataFeedType",
+										"type": "Expression"
+									},
+									"par_TimestampColumn": {
+										"value": "@pipeline().parameters.par_TimestampColumn",
+										"type": "Expression"
+									},
+									"par_TimestampValue": {
+										"value": "@pipeline().parameters.par_TimestampValue",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If L0_SQL_RAW",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "If L0_Blob",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Save Blob Stage Data Flag",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\nvariables('var_feed_blob_data_exists')\n, not(empty(variables('var_datafeed_stage_L0_SQL_RAW')))\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "pl_02_extract_stage_SQL_RAW",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_02_extract_stage_SQL_RAW",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_SourceSystem": {
+										"value": "@pipeline().parameters.par_SourceSystem",
+										"type": "Expression"
+									},
+									"par_batch_id": {
+										"value": "@pipeline().parameters.par_batch_id",
+										"type": "Expression"
+									},
+									"par_batch_ts": {
+										"value": "@pipeline().parameters.par_batch_ts",
+										"type": "Expression"
+									},
+									"par_DataFeedId": {
+										"value": "@pipeline().parameters.par_DataFeedId",
+										"type": "Expression"
+									},
+									"par_datafeed_stage": {
+										"value": "@variables('var_datafeed_stage_L0_SQL_RAW')",
+										"type": "Expression"
+									},
+									"par_DataFeedType": {
+										"value": "@pipeline().parameters.par_DataFeedType",
+										"type": "Expression"
+									},
+									"par_TimestampColumn": {
+										"value": "@pipeline().parameters.par_TimestampColumn",
+										"type": "Expression"
+									},
+									"par_TimestampValue": {
+										"value": "@pipeline().parameters.par_TimestampValue",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If L1_SQL_STG",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "If L0_SQL_RAW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\nvariables('var_feed_blob_data_exists')\n, not(empty(variables('var_datafeed_stage_L1_SQL_STG')))\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "pl_02_extract_stage_SQL_STG",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_02_extract_stage_SQL_STG",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_SourceSystem": {
+										"value": "@pipeline().parameters.par_SourceSystem",
+										"type": "Expression"
+									},
+									"par_batch_id": {
+										"value": "@pipeline().parameters.par_batch_id",
+										"type": "Expression"
+									},
+									"par_batch_ts": {
+										"value": "@pipeline().parameters.par_batch_ts",
+										"type": "Expression"
+									},
+									"par_DataFeedId": {
+										"value": "@pipeline().parameters.par_DataFeedId",
+										"type": "Expression"
+									},
+									"par_datafeed_stage": {
+										"value": "@variables('var_datafeed_stage_L1_SQL_STG')",
+										"type": "Expression"
+									},
+									"par_DataFeedType": {
+										"value": "@pipeline().parameters.par_DataFeedType",
+										"type": "Expression"
+									},
+									"par_TimestampColumn": {
+										"value": "@pipeline().parameters.par_TimestampColumn",
+										"type": "Expression"
+									},
+									"par_TimestampValue": {
+										"value": "@pipeline().parameters.par_TimestampValue",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Timestamp if Incremental",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "If L1_SQL_STG",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\nvariables('var_feed_blob_data_exists')\n, equals(pipeline().parameters.par_DataFeedType, 'incremental')\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Update Table Timestamp",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateTableTimeStamp]",
+								"storedProcedureParameters": {
+									"DataFeedId": {
+										"value": {
+											"value": "@pipeline().parameters.par_DataFeedId",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"TargetTable": {
+										"value": {
+											"value": "@concat(\n  variables('var_datafeed_stage_L1_SQL_STG')[0].DestinationSchema\n, '.'\n, variables('var_datafeed_stage_L1_SQL_STG')[0].DestinationEntity\n)",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TimestampColumn": {
+										"value": {
+											"value": "@pipeline().parameters.par_TimestampColumn",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Check Blob Stage Execution Details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If L0_Blob",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[cfg].[GetFeedExecutionStage]",
+						"storedProcedureParameters": {
+							"batch_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_batch_id",
+									"type": "Expression"
+								}
+							},
+							"DataFeedId": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_DataFeedId",
+									"type": "Expression"
+								}
+							},
+							"DataStage": {
+								"type": "String",
+								"value": "L0_Blob"
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Save Blob Stage Data Flag",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Check Blob Stage Execution Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_feed_blob_data_exists",
+					"value": {
+						"value": "@if(\ngreater(\nactivity('Check Blob Stage Execution Details').output.firstRow.RowsRead, 0\n)\n, bool(1), bool(0)\n)",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"par_DataFeedId": {
+				"type": "int",
+				"defaultValue": 109
+			},
+			"par_batch_ts": {
+				"type": "string",
+				"defaultValue": "20220101050007"
+			},
+			"par_batch_id": {
+				"type": "int",
+				"defaultValue": 125
+			},
+			"par_DataFeedType": {
+				"type": "string",
+				"defaultValue": "incremental"
+			},
+			"par_SourceSystem": {
+				"type": "string",
+				"defaultValue": "donna-comm-frm"
+			},
+			"par_TimestampColumn": {
+				"type": "string",
+				"defaultValue": "modifiedOn"
+			},
+			"par_TimestampValue": {
+				"type": "string",
+				"defaultValue": "2022-11-11T09:11:57.280548Z"
+			}
+		},
+		"variables": {
+			"var_source_query": {
+				"type": "String"
+			},
+			"var_raw_stage_query": {
+				"type": "String"
+			},
+			"var_datafeed_stage_L0_Blob": {
+				"type": "Array"
+			},
+			"var_datafeed_stage_L0_SQL_RAW": {
+				"type": "Array"
+			},
+			"var_datafeed_stage_L1_SQL_STG": {
+				"type": "Array"
+			},
+			"var_datafeed_stage_L2_SQL_EDW": {
+				"type": "Array"
+			},
+			"var_feed_blob_folder_exists": {
+				"type": "Boolean"
+			},
+			"var_feed_blob_data_exists": {
+				"type": "Boolean"
+			}
+		},
+		"folder": {
+			"name": "Data Extract"
+		},
+		"annotations": []
+	}
+}

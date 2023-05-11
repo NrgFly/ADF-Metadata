@@ -1,0 +1,249 @@
+{
+	"name": "pl_03_load_edw_table",
+	"properties": {
+		"activities": [
+			{
+				"name": "Log Feed Stage Execution 04",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[cfg].[CreateFeedStageExecution]",
+						"storedProcedureParameters": {
+							"batch_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_batch_id",
+									"type": "Expression"
+								}
+							},
+							"batch_ts": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.par_batch_ts",
+									"type": "Expression"
+								}
+							},
+							"DataFeedId": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_DataFeedId",
+									"type": "Expression"
+								}
+							},
+							"DataStage": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.par_DataStage",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineRunID": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SP Update Feed Stage Success 04",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SP Load EDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedStageExecutionLog]",
+					"storedProcedureParameters": {
+						"feed_stage_log_id": {
+							"value": {
+								"value": "@activity('Log Feed Stage Execution 04').output.firstRow.feed_stage_log_id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@activity('SP Load EDW').output.firstRow.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@activity('SP Load EDW').output.firstRow.rowsRead",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"UpdateStatus": {
+							"value": "Success",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP Load EDW",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Log Feed Stage Execution 04",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": {
+							"value": "@pipeline().parameters.par_usp_name",
+							"type": "Expression"
+						},
+						"storedProcedureParameters": {
+							"batch_id": {
+								"value": {
+									"value": "@pipeline().parameters.par_batch_id",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SP Update Feed Stage Failure 04",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SP Load EDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedStageExecutionLog]",
+					"storedProcedureParameters": {
+						"feed_stage_log_id": {
+							"value": {
+								"value": "@activity('Log Feed Stage Execution 04').output.firstRow.feed_stage_log_id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@activity('SP Load EDW').output.firstRow.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@activity('SP Load EDW').output.firstRow.rowsRead",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"UpdateStatus": {
+							"value": "Failure",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"par_batch_id": {
+				"type": "int",
+				"defaultValue": 0
+			},
+			"par_usp_name": {
+				"type": "string"
+			},
+			"par_batch_ts": {
+				"type": "string"
+			},
+			"par_DataFeedId": {
+				"type": "int"
+			},
+			"par_DataStage": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Not Used"
+		},
+		"annotations": []
+	}
+}

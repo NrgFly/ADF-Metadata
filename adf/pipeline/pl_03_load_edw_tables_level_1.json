@@ -1,0 +1,259 @@
+{
+	"name": "pl_03_load_edw_tables_level_1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get List of Parent EDW Objects",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select DataObjectParent from [cfg].[DataFeedDependencyExecutionLog] \nwhere DataObjectChild = '@{pipeline().parameters.par_data_object_child}' \nand master_batch_id = @{pipeline().parameters.par_master_batch_id}\nand DataObjectParent <> DataObjectChild",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "For Each Found Parent EDW Object",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get List of Parent EDW Objects",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get List of Parent EDW Objects').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "If All Child jobs are finished",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Check Parent Not Finished jobs",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Check Parent Start Pending",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(\n  equals(activity('Check Parent Not Finished jobs').output.firstRow.row_count,0)\n, greater(activity('Check Parent Start Pending').output.firstRow.row_count, 0)\n)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Get Name of EDW Stored Procedure",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.01:00:00",
+											"retry": 2,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "select ProcessingRoutine from [cfg].[DataFeedDependency] \nwhere DataObject = '@{item().DataObjectParent}' ",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "ds_AzureSQL_Connect",
+												"type": "DatasetReference"
+											}
+										}
+									},
+									{
+										"name": "pl_03_load_edw_tables_level_2",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "pl_03_exec_edw_sp",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "pl_03_load_edw_tables_level_2",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"par_master_batch_id": {
+													"value": "@pipeline().parameters.par_master_batch_id",
+													"type": "Expression"
+												},
+												"par_data_object_child": {
+													"value": "@item().DataObjectParent",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "pl_03_exec_edw_sp",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Get Name of EDW Stored Procedure",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "pl_03_exec_edw_sp",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"par_DataObjectChild": {
+													"value": "@item().DataObjectParent",
+													"type": "Expression"
+												},
+												"par_feed_batch_id": {
+													"value": "@pipeline().parameters.par_master_batch_id",
+													"type": "Expression"
+												},
+												"par_FeedDependencyStatus": "Started",
+												"par_master_batch_id": {
+													"value": "@pipeline().parameters.par_master_batch_id",
+													"type": "Expression"
+												},
+												"par_edw_sp_name": {
+													"value": "@activity('Get Name of EDW Stored Procedure').output.firstRow.ProcessingRoutine",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Check Parent Not Finished jobs",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select count(*) as row_count from [cfg].[DataFeedDependencyExecutionLog] \nwhere DataObjectParent = '@{item().DataObjectParent}' \nand master_batch_id = @{pipeline().parameters.par_master_batch_id}\nand DataObjectParent <> DataObjectChild\nand FeedDependencyStatus <> 'Success'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
+							"name": "Check Parent Start Pending",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select count(*) as row_count from [cfg].[DataFeedDependencyExecutionLog] \nwhere DataObjectParent = '@{item().DataObjectParent}' \nand master_batch_id = @{pipeline().parameters.par_master_batch_id}\nand DataObjectParent = DataObjectChild\nand FeedDependencyStatus = 'Start Pending'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"par_master_batch_id": {
+				"type": "int",
+				"defaultValue": 18
+			},
+			"par_data_object_child": {
+				"type": "string",
+				"defaultValue": "mss_membership"
+			}
+		},
+		"variables": {
+			"var_data_object_parents": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "Data Processing"
+		},
+		"annotations": []
+	}
+}

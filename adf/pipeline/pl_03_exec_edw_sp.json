@@ -1,0 +1,347 @@
+{
+	"name": "pl_03_exec_edw_sp",
+	"properties": {
+		"activities": [
+			{
+				"name": "SP Update Depend Log Failed 01",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SP Update Depend Log Started",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedDependencyExecutionLog]",
+					"storedProcedureParameters": {
+						"DataObjectChild": {
+							"value": {
+								"value": "@pipeline().parameters.par_DataObjectChild",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"feed_batch_id": {
+							"value": {
+								"value": "@pipeline().parameters.par_master_batch_id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"FeedDependencyStatus": {
+							"value": "Failed",
+							"type": "String"
+						},
+						"master_batch_id": {
+							"value": {
+								"value": "@pipeline().parameters.par_master_batch_id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP Update Depend Log Started",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[cfg].[UpdateFeedDependencyExecutionLog]",
+						"storedProcedureParameters": {
+							"DataObjectChild": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.par_DataObjectChild",
+									"type": "Expression"
+								}
+							},
+							"feed_batch_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_feed_batch_id",
+									"type": "Expression"
+								}
+							},
+							"FeedDependencyStatus": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.par_FeedDependencyStatus",
+									"type": "Expression"
+								}
+							},
+							"master_batch_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_master_batch_id",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "If EDW SP processing is not started",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "SP Update Depend Log Started",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('SP Update Depend Log Started').output.firstRow.ERR_NUMBER, 0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "SP Update Depend Log Success",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Get Rows Affected",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateFeedDependencyExecutionLog]",
+								"storedProcedureParameters": {
+									"DataObjectChild": {
+										"value": {
+											"value": "@pipeline().parameters.par_DataObjectChild",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"feed_batch_id": {
+										"value": {
+											"value": "@pipeline().parameters.par_master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"FeedDependencyStatus": {
+										"value": "Success",
+										"type": "String"
+									},
+									"master_batch_id": {
+										"value": {
+											"value": "@pipeline().parameters.par_master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Stored procedure EDW Data Object",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set SQL query",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.04:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "IF '@{pipeline().parameters.par_edw_sp_name}' = 'edw.LoadFactCommunicationCase' \n  EXEC @{pipeline().parameters.par_edw_sp_name} @{pipeline().parameters.par_master_batch_id} \nELSE\n  EXEC @{pipeline().parameters.par_edw_sp_name} ",
+										"type": "Expression"
+									},
+									"queryTimeout": "04:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Get Rows Affected",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Stored procedure EDW Data Object",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rows_affected",
+								"value": {
+									"value": "@activity('Stored procedure EDW Data Object').output.firstRow.rows_affected",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set SQL query",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_sql_query",
+								"value": {
+									"value": "IF '@{pipeline().parameters.par_edw_sp_name}' = 'edw.LoadFactCommunicationCase' \n  EXEC @{pipeline().parameters.par_edw_sp_name} @{pipeline().parameters.par_master_batch_id} \nELSE\n  EXEC @{pipeline().parameters.par_edw_sp_name} ",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SP Update Depend Log Failed 02",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "If EDW SP processing is not started",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedDependencyExecutionLog]",
+					"storedProcedureParameters": {
+						"DataObjectChild": {
+							"value": {
+								"value": "@pipeline().parameters.par_DataObjectChild",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"feed_batch_id": {
+							"value": {
+								"value": "@pipeline().parameters.par_master_batch_id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"FeedDependencyStatus": {
+							"value": "Failed",
+							"type": "String"
+						},
+						"master_batch_id": {
+							"value": {
+								"value": "@pipeline().parameters.par_master_batch_id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"par_DataObjectChild": {
+				"type": "string",
+				"defaultValue": "edw.DimUser"
+			},
+			"par_feed_batch_id": {
+				"type": "int",
+				"defaultValue": 182
+			},
+			"par_FeedDependencyStatus": {
+				"type": "string",
+				"defaultValue": "Started"
+			},
+			"par_master_batch_id": {
+				"type": "int",
+				"defaultValue": 182
+			},
+			"par_edw_sp_name": {
+				"type": "string",
+				"defaultValue": "edw.LoadDimUser"
+			}
+		},
+		"variables": {
+			"var_rows_affected": {
+				"type": "String"
+			},
+			"var_sql_query": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Data Processing"
+		},
+		"annotations": []
+	}
+}

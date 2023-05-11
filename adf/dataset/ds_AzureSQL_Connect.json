@@ -1,0 +1,12 @@
+{
+	"name": "ds_AzureSQL_Connect",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_adfmt",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"name": "ls_akv_korra",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://omacckordkv01.vault.azure.net/"
+		}
+	}
+}

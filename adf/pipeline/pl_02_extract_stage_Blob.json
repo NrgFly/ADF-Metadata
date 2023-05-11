@@ -1,0 +1,1376 @@
+{
+	"name": "pl_02_extract_stage_Blob",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy Source to Blob",
+				"type": "Switch",
+				"dependsOn": [
+					{
+						"activity": "Save feed_stage_log_id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@if(equals(pipeline().parameters.par_DataFeedType,'custom'),'custom',concat(pipeline().parameters.par_SourceSystem,' - ',pipeline().parameters.par_DataFeedType))",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "BRUCE - incremental",
+							"activities": [
+								{
+									"name": "Copy BRUCE to Blob",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set Source Query_BRUCE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.02:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SalesforceSource",
+											"additionalColumns": [
+												{
+													"name": "source_system",
+													"value": {
+														"value": "@pipeline().parameters.par_SourceSystem",
+														"type": "Expression"
+													}
+												},
+												{
+													"name": "batch_id",
+													"value": {
+														"value": "@pipeline().parameters.par_batch_id",
+														"type": "Expression"
+													}
+												}
+											],
+											"query": {
+												"value": "@variables('var_source_query')",
+												"type": "Expression"
+											},
+											"readBehavior": "query"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings",
+												"maxRowsPerFile": 1000000,
+												"fileNamePrefix": {
+													"value": "@concat(\ntoLower(pipeline().parameters.par_datafeed_stage[0].SourceEntity)\n,'-'\n,pipeline().parameters.par_batch_ts\n)",
+													"type": "Expression"
+												}
+											}
+										},
+										"enableStaging": false,
+										"enableSkipIncompatibleRow": true,
+										"validateDataConsistency": true,
+										"logSettings": {
+											"enableCopyActivityLog": true,
+											"copyActivityLogSettings": {
+												"logLevel": "Warning",
+												"enableReliableLogging": false
+											},
+											"logLocationSettings": {
+												"linkedServiceName": {
+													"referenceName": "ls_adls_penbi",
+													"type": "LinkedServiceReference"
+												},
+												"path": "logs"
+											}
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_SF_inbound",
+											"type": "DatasetReference"
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_adls_parquet_target",
+											"type": "DatasetReference",
+											"parameters": {
+												"container": {
+													"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationSchema",
+													"type": "Expression"
+												},
+												"folder": {
+													"value": "@concat(pipeline().parameters.par_datafeed_stage[0].DestinationEntity\n,'/batch_ts='\n,pipeline().parameters.par_batch_ts\n)",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Set Source Query_BRUCE",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set source columns_BRUCE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_source_query",
+										"value": {
+											"value": "select @{variables('var_source_colums')} \nfrom @{pipeline().parameters.par_datafeed_stage[0].SourceEntity} \n@{if(equals(pipeline().parameters.par_DataFeedType, 'incremental'),if(or(not(activity('Check If Feed Blob Folder exists').output.exists),empty(pipeline().parameters.par_TimestampValue)), ' ',concat('where ',pipeline().parameters.par_TimestampColumn, '> ',pipeline().parameters.par_TimestampValue,'Z')),' ')}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "pl_02_extract_stage validate Bruce",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Copy BRUCE to Blob",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set rowsSkipped Bruce",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_02_extract_stage_validate",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"par_rowsSkipped": {
+												"value": "@int(variables('var_rowsSkipped'))",
+												"type": "Expression"
+											},
+											"par_execution_status": {
+												"value": "@activity('Copy BRUCE to Blob').output.executionDetails[0].status",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set rowsCopied Bruce",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy BRUCE to Blob",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsCopied",
+										"value": {
+											"value": "@string(activity('Copy BRUCE to Blob').output.rowsCopied)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsRead Bruce",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy BRUCE to Blob",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsRead",
+										"value": {
+											"value": "@string(activity('Copy BRUCE to Blob').output.rowsRead)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsSkipped Bruce",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy BRUCE to Blob",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsSkipped",
+										"value": {
+											"value": "@string(activity('Copy BRUCE to Blob').output.rowsSkipped)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Get Source columns_BRUCE",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.01:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "select string_agg(sourcecolumn,',') as col_list \nfrom cfg.ColumnMetadata  \nwhere DataFeedStageId=@{pipeline().parameters.par_datafeed_stage[0].DataFeedStageId}\n  and Enabled <> 0",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "ds_AzureSQL_Connect",
+											"type": "DatasetReference"
+										}
+									}
+								},
+								{
+									"name": "Set source columns_BRUCE",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Get Source columns_BRUCE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_source_colums",
+										"value": {
+											"value": "@string(activity('Get Source columns_BRUCE').output.firstRow.col_list)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "custom",
+							"activities": [
+								{
+									"name": "Copy MSS PSS to Blob custom",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Get custom query",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.02:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "OracleSource",
+											"additionalColumns": [
+												{
+													"name": "source_system",
+													"value": {
+														"value": "@pipeline().parameters.par_SourceSystem",
+														"type": "Expression"
+													}
+												},
+												{
+													"name": "batch_id",
+													"value": {
+														"value": "@pipeline().parameters.par_batch_id",
+														"type": "Expression"
+													}
+												}
+											],
+											"oracleReaderQuery": {
+												"value": "@string(activity('Get custom query').output.firstRow.CustomScript)",
+												"type": "Expression"
+											},
+											"partitionOption": "None",
+											"queryTimeout": "02:00:00"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings",
+												"maxRowsPerFile": 1000000,
+												"fileNamePrefix": {
+													"value": "@concat(\ntoLower(pipeline().parameters.par_datafeed_stage[0].SourceEntity)\n,'-'\n,pipeline().parameters.par_batch_ts\n)",
+													"type": "Expression"
+												}
+											}
+										},
+										"enableStaging": false,
+										"enableSkipIncompatibleRow": true,
+										"validateDataConsistency": true,
+										"logSettings": {
+											"enableCopyActivityLog": true,
+											"copyActivityLogSettings": {
+												"logLevel": "Warning",
+												"enableReliableLogging": false
+											},
+											"logLocationSettings": {
+												"linkedServiceName": {
+													"referenceName": "ls_adls_penbi",
+													"type": "LinkedServiceReference"
+												},
+												"path": "logs"
+											}
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_oracle_inbound",
+											"type": "DatasetReference"
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_adls_parquet_target",
+											"type": "DatasetReference",
+											"parameters": {
+												"container": {
+													"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationSchema",
+													"type": "Expression"
+												},
+												"folder": {
+													"value": "@concat(pipeline().parameters.par_datafeed_stage[0].DestinationEntity\n,'/batch_ts='\n,pipeline().parameters.par_batch_ts\n)",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "pl_02_extract_stage validate MSS_Custom",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Copy MSS PSS to Blob custom",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set rowsSkipped MSS_Custom",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_02_extract_stage_validate",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"par_rowsSkipped": {
+												"value": "@int(variables('var_rowsSkipped'))",
+												"type": "Expression"
+											},
+											"par_execution_status": {
+												"value": "@activity('Copy MSS PSS to Blob custom').output.executionDetails[0].status",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set rowsCopied MSS_copy_Custom",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy MSS PSS to Blob custom",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsCopied",
+										"value": {
+											"value": "@string(activity('Copy MSS PSS to Blob custom').output.rowsCopied)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsRead MSS_copy_Custom",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy MSS PSS to Blob custom",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsRead",
+										"value": {
+											"value": "@string(activity('Copy MSS PSS to Blob custom').output.rowsRead)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsSkipped MSS_Custom",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy MSS PSS to Blob custom",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsSkipped",
+										"value": {
+											"value": "@string(activity('Copy MSS PSS to Blob custom').output.rowsSkipped)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Get custom query",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.01:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "select CustomScript as CustomScript\nfrom cfg.Datafeed  \nwhere DataFeedId=@{pipeline().parameters.par_datafeed_stage[0].DataFeedId}",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "ds_AzureSQL_Connect",
+											"type": "DatasetReference"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "donna-nft - incremental",
+							"activities": [
+								{
+									"name": "pl_02_extract_stage_Blob Donna NFT",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_02_extract_stage_Blob_Donna_NFT",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"par_modifiedDate": {
+												"value": "@pipeline().parameters.par_TimestampValue",
+												"type": "Expression"
+											},
+											"par_SourceSystem": {
+												"value": "@pipeline().parameters.par_SourceSystem",
+												"type": "Expression"
+											},
+											"par_batch_id": {
+												"value": "@pipeline().parameters.par_batch_id",
+												"type": "Expression"
+											},
+											"par_batch_ts": {
+												"value": "@pipeline().parameters.par_batch_ts",
+												"type": "Expression"
+											},
+											"par_datafeed_stage": {
+												"value": "@pipeline().parameters.par_datafeed_stage",
+												"type": "Expression"
+											},
+											"par_blob_folder_exists": {
+												"value": "@activity('Check If Feed Blob Folder exists').output.exists",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "pl_02_extract_stage validate Donna NFT",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Set rowsSkipped Donna NFT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "pl_02_extract_stage_Blob Donna NFT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_02_extract_stage_validate",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"par_rowsSkipped": {
+												"value": "@int(variables('var_rowsSkipped'))",
+												"type": "Expression"
+											},
+											"par_execution_status": {
+												"value": "@activity('pl_02_extract_stage_Blob Donna NFT').output.pipelineReturnValue.output_executionDetails_Status",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set rowsCopied Donna NFT",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob Donna NFT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsCopied",
+										"value": {
+											"value": "@string(activity('pl_02_extract_stage_Blob Donna NFT').output.pipelineReturnValue.output_rowsCopied)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsRead Donna NFT",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob Donna NFT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsRead",
+										"value": {
+											"value": "@string(activity('pl_02_extract_stage_Blob Donna NFT').output.pipelineReturnValue.output_rowsRead)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsSkipped Donna NFT",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob Donna NFT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsSkipped",
+										"value": {
+											"value": "@string(activity('pl_02_extract_stage_Blob Donna NFT').output.pipelineReturnValue.output_rowsSkipped)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "donna-comm-frm - incremental",
+							"activities": [
+								{
+									"name": "pl_02_extract_stage_Blob NFT Comm",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_02_extract_stage_Blob_Donna_NFT_Comm",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"par_modifiedDate": {
+												"value": "@pipeline().parameters.par_TimestampValue",
+												"type": "Expression"
+											},
+											"par_SourceSystem": {
+												"value": "@pipeline().parameters.par_SourceSystem",
+												"type": "Expression"
+											},
+											"par_batch_id": {
+												"value": "@pipeline().parameters.par_batch_id",
+												"type": "Expression"
+											},
+											"par_batch_ts": {
+												"value": "@pipeline().parameters.par_batch_ts",
+												"type": "Expression"
+											},
+											"par_datafeed_stage": {
+												"value": "@pipeline().parameters.par_datafeed_stage",
+												"type": "Expression"
+											},
+											"par_blob_folder_exists": {
+												"value": "@activity('Check If Feed Blob Folder exists').output.exists",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "pl_02_extract_stage validate NFT Comm",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob NFT Comm",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set rowsSkipped NFT Comm",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_02_extract_stage_validate",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"par_rowsSkipped": {
+												"value": "@int(variables('var_rowsSkipped'))",
+												"type": "Expression"
+											},
+											"par_execution_status": {
+												"value": "@activity('pl_02_extract_stage_Blob NFT Comm').output.pipelineReturnValue.output_executionDetails_Status",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set rowsCopied NFT Comm",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob NFT Comm",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsCopied",
+										"value": {
+											"value": "@string(activity('pl_02_extract_stage_Blob NFT Comm').output.pipelineReturnValue.output_rowsCopied)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsRead NFT Comm",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob NFT Comm",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsRead",
+										"value": {
+											"value": "@string(activity('pl_02_extract_stage_Blob NFT Comm').output.pipelineReturnValue.output_rowsRead)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set rowsSkipped NFT Comm",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "pl_02_extract_stage_Blob NFT Comm",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "var_rowsSkipped",
+										"value": {
+											"value": "@string(activity('pl_02_extract_stage_Blob NFT Comm').output.pipelineReturnValue.output_rowsSkipped)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "Copy MSS PSS to Blob",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set Source Query",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.02:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "OracleSource",
+									"additionalColumns": [
+										{
+											"name": "source_system",
+											"value": {
+												"value": "@pipeline().parameters.par_SourceSystem",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "batch_id",
+											"value": {
+												"value": "@pipeline().parameters.par_batch_id",
+												"type": "Expression"
+											}
+										}
+									],
+									"oracleReaderQuery": {
+										"value": "@variables('var_source_query')",
+										"type": "Expression"
+									},
+									"partitionOption": "None",
+									"queryTimeout": "02:00:00"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings",
+										"maxRowsPerFile": 1000000,
+										"fileNamePrefix": {
+											"value": "@concat(\ntoLower(pipeline().parameters.par_datafeed_stage[0].SourceEntity)\n,'-'\n,pipeline().parameters.par_batch_ts\n)",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableStaging": false,
+								"enableSkipIncompatibleRow": true,
+								"validateDataConsistency": true,
+								"logSettings": {
+									"enableCopyActivityLog": true,
+									"copyActivityLogSettings": {
+										"logLevel": "Warning",
+										"enableReliableLogging": false
+									},
+									"logLocationSettings": {
+										"linkedServiceName": {
+											"referenceName": "ls_adls_penbi",
+											"type": "LinkedServiceReference"
+										},
+										"path": "logs"
+									}
+								},
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_oracle_inbound",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_adls_parquet_target",
+									"type": "DatasetReference",
+									"parameters": {
+										"container": {
+											"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationSchema",
+											"type": "Expression"
+										},
+										"folder": {
+											"value": "@concat(pipeline().parameters.par_datafeed_stage[0].DestinationEntity\n,'/batch_ts='\n,pipeline().parameters.par_batch_ts\n)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Set Source Query",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set source columns",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_source_query",
+								"value": {
+									"value": "select @{variables('var_source_colums')}\nfrom @{pipeline().parameters.par_datafeed_stage[0].SourceSchema}.@{pipeline().parameters.par_datafeed_stage[0].SourceEntity}\nwhere (@{if(equals(pipeline().parameters.par_DataFeedType, 'incremental'),if(or(not(activity('Check If Feed Blob Folder exists').output.exists),empty(pipeline().parameters.par_TimestampValue)), '1=1',concat(pipeline().parameters.par_TimestampColumn, '> TO_TIMESTAMP('''\n,replace(replace(pipeline().parameters.par_TimestampValue,'T',' '),'Z','')\n,''', ''YYYY-MM-DD HH24:MI:SS.FF'')')),'1=1')})\n--and rownum < 50",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "pl_02_extract_stage validate MSS",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Copy MSS PSS to Blob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set rowsSkipped MSS",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_02_extract_stage_validate",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_rowsSkipped": {
+										"value": "@int(variables('var_rowsSkipped'))",
+										"type": "Expression"
+									},
+									"par_execution_status": {
+										"value": "@activity('Copy MSS PSS to Blob').output.executionDetails[0].status",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Set rowsCopied MSS",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy MSS PSS to Blob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rowsCopied",
+								"value": {
+									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsCopied)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set rowsRead MSS",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy MSS PSS to Blob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rowsRead",
+								"value": {
+									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsRead)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set rowsSkipped MSS",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy MSS PSS to Blob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_rowsSkipped",
+								"value": {
+									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsSkipped)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Get Source columns",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select string_agg(convert(nvarchar(max),sourcecolumn),',') as col_list \nfrom cfg.ColumnMetadata  \nwhere DataFeedStageId=@{pipeline().parameters.par_datafeed_stage[0].DataFeedStageId}\n  and Enabled <> 0",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_AzureSQL_Connect",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Set source columns",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Source columns",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_source_colums",
+								"value": {
+									"value": "@string(activity('Get Source columns').output.firstRow.col_list)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Check If Feed Blob Folder exists",
+				"type": "Validation",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_adls_parquet_target",
+						"type": "DatasetReference",
+						"parameters": {
+							"container": {
+								"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationSchema",
+								"type": "Expression"
+							},
+							"folder": {
+								"value": "@pipeline().parameters.par_datafeed_stage[0].DestinationEntity",
+								"type": "Expression"
+							}
+						}
+					},
+					"timeout": "0.00:00:05",
+					"sleep": 5
+				}
+			},
+			{
+				"name": "SP Update Feed Stage Success",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Source to Blob",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedStageExecutionLog]",
+					"storedProcedureParameters": {
+						"feed_stage_log_id": {
+							"value": {
+								"value": "@int(variables('var_feed_stage_log_id'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@int(variables('var_rowsCopied'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@int(variables('var_rowsRead'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"UpdateStatus": {
+							"value": "Success",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP Update Feed Stage Failure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Source to Blob",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[cfg].[UpdateFeedStageExecutionLog]",
+					"storedProcedureParameters": {
+						"feed_stage_log_id": {
+							"value": {
+								"value": "@int(variables('var_feed_stage_log_id'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@int(variables('var_rowsCopied'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@int(variables('var_rowsRead'))",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"UpdateStatus": {
+							"value": "Failed",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_korra",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Log Feed Stage Execution",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Check If Feed Blob Folder exists",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[cfg].[CreateFeedStageExecution]",
+						"storedProcedureParameters": {
+							"batch_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_batch_id",
+									"type": "Expression"
+								}
+							},
+							"batch_ts": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.par_batch_ts",
+									"type": "Expression"
+								}
+							},
+							"DataFeedId": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.par_DataFeedId",
+									"type": "Expression"
+								}
+							},
+							"DataStage": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.par_datafeed_stage[0].DataStage",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineRunID": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Save feed_stage_log_id",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Log Feed Stage Execution",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_feed_stage_log_id",
+					"value": {
+						"value": "@string(activity('Log Feed Stage Execution').output.firstRow.feed_stage_log_id)",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"par_SourceSystem": {
+				"type": "string"
+			},
+			"par_batch_id": {
+				"type": "int"
+			},
+			"par_batch_ts": {
+				"type": "string"
+			},
+			"par_DataFeedId": {
+				"type": "int"
+			},
+			"par_datafeed_stage": {
+				"type": "array"
+			},
+			"par_DataFeedType": {
+				"type": "string"
+			},
+			"par_TimestampColumn": {
+				"type": "string"
+			},
+			"par_TimestampValue": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"var_source_query": {
+				"type": "String"
+			},
+			"var_rowsCopied": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsSkipped": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsRead": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_feed_stage_log_id": {
+				"type": "String"
+			},
+			"var_source_colums": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Data Extract"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,108 @@
+{
+	"name": "pl_01_edw_loop_process",
+	"properties": {
+		"activities": [
+			{
+				"name": "Check if EDW objects to process",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.par_edw_tables",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "pl_03_load_edw_tables_level_1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "SP Update Depend Log Start Pending",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_03_load_edw_tables_level_1",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_master_batch_id": {
+										"value": "@item().master_batch_id",
+										"type": "Expression"
+									},
+									"par_data_object_child": {
+										"value": "@item().data_object_child",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "SP Update Depend Log Start Pending",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[cfg].[UpdateFeedDependencyExecutionLog]",
+								"storedProcedureParameters": {
+									"DataObjectChild": {
+										"value": {
+											"value": "@item().data_object_parent",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"feed_batch_id": {
+										"value": {
+											"value": "@item().master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"FeedDependencyStatus": {
+										"value": "Start Pending",
+										"type": "String"
+									},
+									"master_batch_id": {
+										"value": {
+											"value": "@item().master_batch_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_korra",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"par_edw_tables": {
+				"type": "array"
+			}
+		},
+		"folder": {
+			"name": "Data Processing"
+		},
+		"annotations": []
+	}
+}
