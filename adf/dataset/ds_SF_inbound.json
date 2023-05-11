@@ -1,12 +1,12 @@
 {
-	"name": "ds_AzureSQL_Connect",
+	"name": "ds_SF_inbound",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "ls_sql_korra",
+			"referenceName": "ls_sf_penbi",
 			"type": "LinkedServiceReference"
 		},
 		"annotations": [],
-		"type": "AzureSqlTable",
+		"type": "SalesforceObject",
 		"schema": []
 	}
 }

@@ -1,0 +1,15 @@
+{
+	"name": "ds_ma_TimeSheet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ms_timesheet",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "MicrosoftAccessTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": "`TPS_Timesheet`"
+		}
+	}
+}

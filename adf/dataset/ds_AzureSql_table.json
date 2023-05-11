@@ -2,7 +2,7 @@
 	"name": "ds_AzureSql_table",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "ls_sql_adfmt",
+			"referenceName": "ls_sql_korra",
 			"type": "LinkedServiceReference"
 		},
 		"parameters": {

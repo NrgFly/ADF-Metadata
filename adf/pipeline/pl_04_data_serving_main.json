@@ -1,0 +1,66 @@
+{
+	"name": "pl_04_data_serving_main",
+	"properties": {
+		"activities": [
+			{
+				"name": "DSL ADF Master Batch",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.02:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://management.azure.com/subscriptions/@{variables('var_azure_subs')}/resourceGroups/@{variables('var_azure_rg')}/providers/Microsoft.DataFactory/factories/@{variables('var_azure_adf')}/pipelines/pl_01_main_data_schedule/createRun?api-version=2018-06-01",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "PENBISelfHostedIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\"par_trigger_start_time\":\"@{pipeline().parameters.par_batch_datetime}\"}",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.core.windows.net/"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"par_batch_datetime": {
+				"type": "string",
+				"defaultValue": "2022-12-01T09:00:00Z"
+			}
+		},
+		"variables": {
+			"var_azure_subs": {
+				"type": "String",
+				"defaultValue": "35d9b3a4-cffe-46b8-8a8e-6350e5cb1fe0"
+			},
+			"var_azure_rg": {
+				"type": "String",
+				"defaultValue": "omaccdsldrg01"
+			},
+			"var_azure_adf": {
+				"type": "String",
+				"defaultValue": "omaccdsldadf01"
+			}
+		},
+		"folder": {
+			"name": "Data Serving Layer"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,569 @@
+{
+	"name": "ds_adls_five9_CallLogDetails",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_penbi",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "OMERS - Call Log Export Aug2020-Dec2020.csv",
+				"folderPath": "History/CallLogDetails",
+				"fileSystem": "five9"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "DATE",
+				"type": "String"
+			},
+			{
+				"name": "DATE AND HOUR",
+				"type": "String"
+			},
+			{
+				"name": "DAY OF MONTH",
+				"type": "String"
+			},
+			{
+				"name": "DAY OF WEEK",
+				"type": "String"
+			},
+			{
+				"name": "HALF HOUR",
+				"type": "String"
+			},
+			{
+				"name": "HOUR",
+				"type": "String"
+			},
+			{
+				"name": "HOUR OF DAY",
+				"type": "String"
+			},
+			{
+				"name": "MONTH",
+				"type": "String"
+			},
+			{
+				"name": "QUARTER HOUR",
+				"type": "String"
+			},
+			{
+				"name": "TIME",
+				"type": "String"
+			},
+			{
+				"name": "TIME INTERVAL",
+				"type": "String"
+			},
+			{
+				"name": "TIMESTAMP",
+				"type": "String"
+			},
+			{
+				"name": "TIMESTAMP MILLISECOND",
+				"type": "String"
+			},
+			{
+				"name": "YEAR",
+				"type": "String"
+			},
+			{
+				"name": "ABANDON RATE",
+				"type": "String"
+			},
+			{
+				"name": "ABANDONED",
+				"type": "String"
+			},
+			{
+				"name": "ANI",
+				"type": "String"
+			},
+			{
+				"name": "ANI AREA CODE",
+				"type": "String"
+			},
+			{
+				"name": "ANI COUNTRY",
+				"type": "String"
+			},
+			{
+				"name": "ANI COUNTRY CODE",
+				"type": "String"
+			},
+			{
+				"name": "ANI STATE",
+				"type": "String"
+			},
+			{
+				"name": "CALL ID",
+				"type": "String"
+			},
+			{
+				"name": "CALL SURVEY RESULT",
+				"type": "String"
+			},
+			{
+				"name": "CALL TYPE",
+				"type": "String"
+			},
+			{
+				"name": "CALLS",
+				"type": "String"
+			},
+			{
+				"name": "CALLS COMPLETED IN IVR",
+				"type": "String"
+			},
+			{
+				"name": "CALLS TIMED OUT IN IVR",
+				"type": "String"
+			},
+			{
+				"name": "CAMPAIGN",
+				"type": "String"
+			},
+			{
+				"name": "CAMPAIGN TYPE",
+				"type": "String"
+			},
+			{
+				"name": "CONTACTED",
+				"type": "String"
+			},
+			{
+				"name": "CUSTOMER NAME",
+				"type": "String"
+			},
+			{
+				"name": "DIAL RESULT",
+				"type": "String"
+			},
+			{
+				"name": "DISCONNECTED FROM HOLD",
+				"type": "String"
+			},
+			{
+				"name": "DISPOSITION",
+				"type": "String"
+			},
+			{
+				"name": "DISPOSITION GROUP A",
+				"type": "String"
+			},
+			{
+				"name": "DISPOSITION GROUP B",
+				"type": "String"
+			},
+			{
+				"name": "DISPOSITION GROUP C",
+				"type": "String"
+			},
+			{
+				"name": "DISPOSITION PATH",
+				"type": "String"
+			},
+			{
+				"name": "DNIS",
+				"type": "String"
+			},
+			{
+				"name": "DNIS AREA CODE",
+				"type": "String"
+			},
+			{
+				"name": "DNIS COUNTRY",
+				"type": "String"
+			},
+			{
+				"name": "DNIS COUNTRY CODE",
+				"type": "String"
+			},
+			{
+				"name": "DNIS STATE",
+				"type": "String"
+			},
+			{
+				"name": "IVR PATH",
+				"type": "String"
+			},
+			{
+				"name": "LIST NAME",
+				"type": "String"
+			},
+			{
+				"name": "LIVE CONNECT",
+				"type": "String"
+			},
+			{
+				"name": "NO PARTY CONTACT",
+				"type": "String"
+			},
+			{
+				"name": "NOTES",
+				"type": "String"
+			},
+			{
+				"name": "PARENT SESSION ID",
+				"type": "String"
+			},
+			{
+				"name": "RECORDINGS",
+				"type": "String"
+			},
+			{
+				"name": "SERVICE LEVEL",
+				"type": "String"
+			},
+			{
+				"name": "SESSION ID",
+				"type": "String"
+			},
+			{
+				"name": "SIP RESPONSE CODE",
+				"type": "String"
+			},
+			{
+				"name": "SKILL",
+				"type": "String"
+			},
+			{
+				"name": "SOA MIN/THRESHOLD (sec)",
+				"type": "String"
+			},
+			{
+				"name": "SPEED OF ANSWER",
+				"type": "String"
+			},
+			{
+				"name": "3RD PARTY TALK TIME",
+				"type": "String"
+			},
+			{
+				"name": "AFTER CALL WORK TIME",
+				"type": "String"
+			},
+			{
+				"name": "BILL TIME (ROUNDED)",
+				"type": "String"
+			},
+			{
+				"name": "CALL TIME",
+				"type": "String"
+			},
+			{
+				"name": "CONFERENCE TIME",
+				"type": "String"
+			},
+			{
+				"name": "CONFERENCES",
+				"type": "String"
+			},
+			{
+				"name": "CONSULT TIME",
+				"type": "String"
+			},
+			{
+				"name": "COST",
+				"type": "String"
+			},
+			{
+				"name": "DIAL TIME",
+				"type": "String"
+			},
+			{
+				"name": "HANDLE TIME",
+				"type": "String"
+			},
+			{
+				"name": "HOLD TIME",
+				"type": "String"
+			},
+			{
+				"name": "HOLDS",
+				"type": "String"
+			},
+			{
+				"name": "IVR TIME",
+				"type": "String"
+			},
+			{
+				"name": "MANUAL TIME",
+				"type": "String"
+			},
+			{
+				"name": "PARK TIME",
+				"type": "String"
+			},
+			{
+				"name": "PARKS",
+				"type": "String"
+			},
+			{
+				"name": "PREVIEW INTERRUPTED",
+				"type": "String"
+			},
+			{
+				"name": "PREVIEW INTERRUPTED BY CALL",
+				"type": "String"
+			},
+			{
+				"name": "PREVIEW INTERRUPTED BY SKILL VM",
+				"type": "String"
+			},
+			{
+				"name": "PREVIEW TIME",
+				"type": "String"
+			},
+			{
+				"name": "QUEUE CALLBACK PROCESSING",
+				"type": "String"
+			},
+			{
+				"name": "QUEUE CALLBACK REGISTERED",
+				"type": "String"
+			},
+			{
+				"name": "QUEUE CALLBACK WAIT TIME",
+				"type": "String"
+			},
+			{
+				"name": "QUEUE WAIT TIME",
+				"type": "String"
+			},
+			{
+				"name": "RATE",
+				"type": "String"
+			},
+			{
+				"name": "RING TIME",
+				"type": "String"
+			},
+			{
+				"name": "TALK TIME",
+				"type": "String"
+			},
+			{
+				"name": "TALK TIME LESS HOLD AND PARK",
+				"type": "String"
+			},
+			{
+				"name": "TIME TO ABANDON",
+				"type": "String"
+			},
+			{
+				"name": "TOTAL QUEUE TIME",
+				"type": "String"
+			},
+			{
+				"name": "TRANSFERS",
+				"type": "String"
+			},
+			{
+				"name": "VIDEO TIME",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS DECLINED",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS DELETED",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS HANDLE TIME",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS HANDLED",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS RETURNED CALL",
+				"type": "String"
+			},
+			{
+				"name": "VOICEMAILS TRANSFERRED",
+				"type": "String"
+			},
+			{
+				"name": "AGENT",
+				"type": "String"
+			},
+			{
+				"name": "AGENT EMAIL",
+				"type": "String"
+			},
+			{
+				"name": "AGENT FIRST NAME",
+				"type": "String"
+			},
+			{
+				"name": "AGENT GROUP",
+				"type": "String"
+			},
+			{
+				"name": "AGENT ID",
+				"type": "String"
+			},
+			{
+				"name": "AGENT LAST NAME",
+				"type": "String"
+			},
+			{
+				"name": "AGENT NAME",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT EMAIL",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT EXTENSION",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT FIRST NAME",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT GROUP",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT LAST NAME",
+				"type": "String"
+			},
+			{
+				"name": "DEST AGENT NAME",
+				"type": "String"
+			},
+			{
+				"name": "EXTENSION",
+				"type": "String"
+			},
+			{
+				"name": "city",
+				"type": "String"
+			},
+			{
+				"name": "company",
+				"type": "String"
+			},
+			{
+				"name": "CONTACT CREATE TIMESTAMP",
+				"type": "String"
+			},
+			{
+				"name": "CONTACT ID",
+				"type": "String"
+			},
+			{
+				"name": "CONTACT MODIFIED TIMESTAMP",
+				"type": "String"
+			},
+			{
+				"name": "email",
+				"type": "String"
+			},
+			{
+				"name": "first_name",
+				"type": "String"
+			},
+			{
+				"name": "last_name",
+				"type": "String"
+			},
+			{
+				"name": "number1",
+				"type": "String"
+			},
+			{
+				"name": "number2",
+				"type": "String"
+			},
+			{
+				"name": "number3",
+				"type": "String"
+			},
+			{
+				"name": "state",
+				"type": "String"
+			},
+			{
+				"name": "street",
+				"type": "String"
+			},
+			{
+				"name": "SurveyEnabled",
+				"type": "String"
+			},
+			{
+				"name": "zip",
+				"type": "String"
+			},
+			{
+				"name": "Call.length",
+				"type": "String"
+			},
+			{
+				"name": "CallSurvey.AgentSurveyAction",
+				"type": "String"
+			},
+			{
+				"name": "Customer.SurveyEnabled",
+				"type": "String"
+			},
+			{
+				"name": "Diagnostics.http_code",
+				"type": "String"
+			},
+			{
+				"name": "Diagnostics.http_desc",
+				"type": "String"
+			},
+			{
+				"name": "Employer Services.Survey Question 1",
+				"type": "String"
+			},
+			{
+				"name": "Member Services.Caller Successfully Authenticated",
+				"type": "String"
+			},
+			{
+				"name": "Member Services.Survey Question 1",
+				"type": "String"
+			},
+			{
+				"name": "Member Services.Survey Question 2",
+				"type": "String"
+			},
+			{
+				"name": "Member Services.Survey Question 3",
+				"type": "String"
+			},
+			{
+				"name": "Queue.EWT",
+				"type": "String"
+			}
+		]
+	}
+}

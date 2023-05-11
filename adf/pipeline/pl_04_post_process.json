@@ -1,0 +1,82 @@
+{
+	"name": "pl_04_post_process",
+	"properties": {
+		"activities": [
+			{
+				"name": "Last Master Batch",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select top 1 master_batch_id, MasterBatchStatus from (\nselect master_batch_id, MasterBatchStatus from (select top 1 master_batch_id, MasterBatchStatus from [cfg].[MasterBatchExecutionLog] order by master_batch_id desc) data\nUNION ALL\nselect 0 as master_batch_id, 'Success' as MasterBatchStatus\n) data \norder by master_batch_id desc",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AzureSQL_Connect",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "If Master Batch successfull",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Last Master Batch",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(\n    activity('Last Master Batch').output.firstRow.MasterBatchStatus\n, 'Success')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "pl_04_dsl_main",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_04_data_serving_main",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"par_batch_datetime": {
+										"value": "@addToTime(\n    pipeline().parameters.par_batch_datetime\n    , 3\n    , 'Hour'\n)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"par_batch_datetime": {
+				"type": "string",
+				"defaultValue": "2022-12-01T06:00:00Z"
+			}
+		},
+		"folder": {
+			"name": "Not Used"
+		},
+		"annotations": []
+	}
+}

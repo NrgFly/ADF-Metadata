@@ -1,0 +1,312 @@
+{
+	"name": "pl_five9_history_AgentState",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy History Five9 RealTime AgentState",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "History/AgentState",
+							"wildcardFileName": "*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "truncate table [five9].[RealtimeAgentState]",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "AGENT EMAIL",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AgentEmail",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "AGENT ID",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AgentId",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "AGENT NAME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AgentName",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "DATE",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "StateDate",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "TIMESTAMP MILLISECOND",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "StateTimestampMillisecond",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "REASON CODE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "ReasonCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SKILL AVAILABILITY",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "SkillAvailability",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STATE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AgentState",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "AGENT STATE TIME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AgentStateTime",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CALL ID",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "CallId",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CALL TYPE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "CallType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CALLS",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Calls",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CAMPAIGN",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Campaign",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "DISPOSITION",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Disposition",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SKILL",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Skill",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "AFTER CALL WORK TIME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AfterCallWorkTime",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "HANDLE TIME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HandleTime",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "HOLD TIME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HoldTime",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TALK TIME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "TalkTime",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "QUEUE CALLBACK REGISTERED",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "QueueCallbackRegistered",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_adls_five9_AgentState",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_AzureSql_table",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": "five9",
+							"table": "RealtimeAgentState"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "History Load"
+		},
+		"annotations": []
+	}
+}

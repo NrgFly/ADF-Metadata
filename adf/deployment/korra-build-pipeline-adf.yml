@@ -1,0 +1,32 @@
+# Azure pipeline to build the Data Factory for the PENBI projects
+
+# specific path build
+trigger:
+  branches:
+    include:
+    - main
+    - release/*
+  tags:
+    include:
+    - release/*
+    - hotfix/*
+
+  paths:
+    include:
+    - adf/*
+    exclude:
+    - adf/README.md
+
+variables:
+  AgentPoolName_DEV: 'PENBI Agent Pool DEV-UAT'
+
+stages:
+- stage: Build
+  displayName: Build
+  jobs:
+  - job: Build
+    displayName: Build
+    pool: $(AgentPoolName_DEV)
+    steps:
+    - publish: $(System.DefaultWorkingDirectory)
+      artifact: DataFactory

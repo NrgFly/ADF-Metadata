@@ -1,0 +1,32 @@
+{
+	"name": "ls_sf_penbi",
+	"properties": {
+		"annotations": [],
+		"type": "Salesforce",
+		"typeProperties": {
+			"environmentUrl": "https://omers--dev5.sandbox.my.salesforce.com",
+			"username": "penbi-int-user@omers.com.dev5",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_akv_korra",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sf-account-pass"
+			},
+			"securityToken": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_akv_korra",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sf-security-token"
+			},
+			"apiVersion": "52.0"
+		},
+		"connectVia": {
+			"referenceName": "PENBISelfHostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

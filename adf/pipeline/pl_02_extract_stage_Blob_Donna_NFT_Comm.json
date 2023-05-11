@@ -1,0 +1,1481 @@
+{
+	"name": "pl_02_extract_stage_Blob_Donna_NFT_Comm",
+	"properties": {
+		"description": "Donna NFT dataset",
+		"activities": [
+			{
+				"name": "ForEach API Page",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Check if NFT Page Count Empty",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@range(0, int(variables('var_nft_page_count')))",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Switch FeedName",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@variables('var_feed_name')",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "email",
+										"activities": [
+											{
+												"name": "Copy API NFT Data to Blob Email",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.00:30:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"additionalColumns": [
+															{
+																"name": "source_system",
+																"value": {
+																	"value": "@pipeline().parameters.par_SourceSystem",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "batch_id",
+																"value": {
+																	"value": "@pipeline().parameters.par_batch_id",
+																	"type": "Expression"
+																}
+															}
+														],
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"additionalHeaders": {
+															"Content-Type": "application/json"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings",
+															"maxRowsPerFile": 1000000,
+															"fileNamePrefix": {
+																"value": "@concat(\ntoLower(pipeline().parameters.par_datafeed_stage[0].SourceEntity)\n,'-'\n,pipeline().parameters.par_batch_ts\n,'-', string(item())\n)",
+																"type": "Expression"
+															}
+														}
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": true,
+													"logSettings": {
+														"enableCopyActivityLog": true,
+														"copyActivityLogSettings": {
+															"logLevel": "Warning",
+															"enableReliableLogging": false
+														},
+														"logLocationSettings": {
+															"linkedServiceName": {
+																"referenceName": "ls_adls_penbi",
+																"type": "LinkedServiceReference"
+															},
+															"path": "logs"
+														}
+													},
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"path": "['id']"
+																},
+																"sink": {
+																	"name": "id",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['templateId']"
+																},
+																"sink": {
+																	"name": "templateId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['externalId']"
+																},
+																"sink": {
+																	"name": "externalId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['maxRetryCount']"
+																},
+																"sink": {
+																	"name": "maxRetryCount",
+																	"type": "Int64"
+																}
+															},
+															{
+																"source": {
+																	"path": "['deliveryInfo']"
+																},
+																"sink": {
+																	"name": "deliveryInfo",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['batch']"
+																},
+																"sink": {
+																	"name": "batch",
+																	"type": "Boolean"
+																}
+															},
+															{
+																"source": {
+																	"path": "['deliveryStatus']"
+																},
+																"sink": {
+																	"name": "deliveryStatus",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['documentId']"
+																},
+																"sink": {
+																	"name": "documentId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['createdOn']"
+																},
+																"sink": {
+																	"name": "createdOn",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['createdBy']"
+																},
+																"sink": {
+																	"name": "createdBy",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['modifiedOn']"
+																},
+																"sink": {
+																	"name": "modifiedOn",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['modifiedBy']"
+																},
+																"sink": {
+																	"name": "modifiedBy",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['sourceId']"
+																},
+																"sink": {
+																	"name": "sourceId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['processStatus']"
+																},
+																"sink": {
+																	"name": "processStatus",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['memberId']"
+																},
+																"sink": {
+																	"name": "memberId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['journeyId']"
+																},
+																"sink": {
+																	"name": "journeyId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['employerId']"
+																},
+																"sink": {
+																	"name": "employerId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['workOrderNumber']"
+																},
+																"sink": {
+																	"name": "workOrderNumber",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['groupNumber']"
+																},
+																"sink": {
+																	"name": "groupNumber",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['caseNumber']"
+																},
+																"sink": {
+																	"name": "caseNumber",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['nftId']"
+																},
+																"sink": {
+																	"name": "nftId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "$['source_system']"
+																},
+																"sink": {
+																	"name": "source_system"
+																}
+															},
+															{
+																"source": {
+																	"path": "$['batch_id']"
+																},
+																"sink": {
+																	"name": "batch_id"
+																}
+															}
+														],
+														"collectionReference": "$['result']['data']['content']",
+														"mapComplexValuesToString": true
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_api_donna_nft_comm_email",
+														"type": "DatasetReference",
+														"parameters": {
+															"QueryParams": {
+																"value": "@replace(\n        variables('var_QueryParams')\n        , '&pageNo=0'\n        , concat('&pageNo=', item())\n    )",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_adls_parquet_target",
+														"type": "DatasetReference",
+														"parameters": {
+															"container": {
+																"value": "@pipeline().parameters.par_SourceSystem",
+																"type": "Expression"
+															},
+															"folder": {
+																"value": "@concat(pipeline().parameters.par_datafeed_stage[0].DestinationEntity\n,'/batch_ts='\n,pipeline().parameters.par_batch_ts\n)",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Set rowsCopied Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Copy API NFT Data to Blob Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsCopied",
+													"value": {
+														"value": "@string(\n    add(\n        int(variables('var_rowsCopied_Incremental'))\n        , activity('Copy API NFT Data to Blob Email').output.rowsCopied\n        )\n    )\n",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsRead Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsSkipped Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													},
+													{
+														"activity": "Set rowsCopied Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsRead",
+													"value": {
+														"value": "@string(\n    add(\n        int(variables('var_rowsRead_Incremental'))\n        , if(equals(activity('Copy API NFT Data to Blob Email').output.rowsSkipped,0)\n            , activity('Copy API NFT Data to Blob Email').output.rowsCopied\n            , sub(activity('Copy API NFT Data to Blob Email').output.rowsCopied, activity('Copy API NFT Data to Blob Email').output.rowsSkipped))\n        )\n    )\n",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsSkipped Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Copy API NFT Data to Blob Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsSkipped",
+													"value": {
+														"value": "@string(\n    add(\n        int(variables('var_rowsSkipped_Incremental'))\n        , activity('Copy API NFT Data to Blob Email').output.rowsSkipped\n        )\n    )",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsRead Incremental Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsRead Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsRead_Incremental",
+													"value": {
+														"value": "@variables('var_rowsRead')",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsSkipped Incremental Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsSkipped Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsSkipped_Incremental",
+													"value": {
+														"value": "@variables('var_rowsSkipped')",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsCopied Incremental Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsCopied Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsCopied_Incremental",
+													"value": {
+														"value": "@variables('var_rowsCopied')",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set execution Details Status Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsCopied Incremental Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													},
+													{
+														"activity": "Set rowsRead Incremental Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													},
+													{
+														"activity": "Set rowsSkipped Incremental Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_executionDetails_Status",
+													"value": {
+														"value": "@if(\n    not(\n    equals(variables('var_executionDetails_Status_Final'), 'Succeeded'))\n    , variables('var_executionDetails_Status_Final')\n    , activity('Copy API NFT Data to Blob Email').output.executionDetails[0].status\n    )",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set execution Details Status Final Email",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set execution Details Status Email",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_executionDetails_Status_Final",
+													"value": {
+														"value": "@variables('var_executionDetails_Status')",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "print",
+										"activities": [
+											{
+												"name": "Copy API NFT Data to Blob Print",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.00:30:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"additionalColumns": [
+															{
+																"name": "source_system",
+																"value": {
+																	"value": "@pipeline().parameters.par_SourceSystem",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "batch_id",
+																"value": {
+																	"value": "@pipeline().parameters.par_batch_id",
+																	"type": "Expression"
+																}
+															}
+														],
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"additionalHeaders": {
+															"Content-Type": "application/json"
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings",
+															"maxRowsPerFile": 1000000,
+															"fileNamePrefix": {
+																"value": "@concat(\ntoLower(pipeline().parameters.par_datafeed_stage[0].SourceEntity)\n,'-'\n,pipeline().parameters.par_batch_ts\n,'-', string(item())\n)",
+																"type": "Expression"
+															}
+														}
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": true,
+													"logSettings": {
+														"enableCopyActivityLog": true,
+														"copyActivityLogSettings": {
+															"logLevel": "Warning",
+															"enableReliableLogging": false
+														},
+														"logLocationSettings": {
+															"linkedServiceName": {
+																"referenceName": "ls_adls_penbi",
+																"type": "LinkedServiceReference"
+															},
+															"path": "logs"
+														}
+													},
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"path": "['id']"
+																},
+																"sink": {
+																	"name": "id",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['printId']"
+																},
+																"sink": {
+																	"name": "printId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['maxRetryCount']"
+																},
+																"sink": {
+																	"name": "maxRetryCount",
+																	"type": "Int64"
+																}
+															},
+															{
+																"source": {
+																	"path": "['batch']"
+																},
+																"sink": {
+																	"name": "batch",
+																	"type": "Boolean"
+																}
+															},
+															{
+																"source": {
+																	"path": "['deliveryStatus']"
+																},
+																"sink": {
+																	"name": "deliveryStatus",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['documentId']"
+																},
+																"sink": {
+																	"name": "documentId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['createdOn']"
+																},
+																"sink": {
+																	"name": "createdOn",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['createdBy']"
+																},
+																"sink": {
+																	"name": "createdBy",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['modifiedOn']"
+																},
+																"sink": {
+																	"name": "modifiedOn",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['modifiedBy']"
+																},
+																"sink": {
+																	"name": "modifiedBy",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['sourceId']"
+																},
+																"sink": {
+																	"name": "sourceId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['processStatus']"
+																},
+																"sink": {
+																	"name": "processStatus",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['memberId']"
+																},
+																"sink": {
+																	"name": "memberId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['journeyId']"
+																},
+																"sink": {
+																	"name": "journeyId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['employerId']"
+																},
+																"sink": {
+																	"name": "employerId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['workOrderNumber']"
+																},
+																"sink": {
+																	"name": "workOrderNumber",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['groupNumber']"
+																},
+																"sink": {
+																	"name": "groupNumber",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['caseNumber']"
+																},
+																"sink": {
+																	"name": "caseNumber",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['nftId']"
+																},
+																"sink": {
+																	"name": "nftId",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['printedOn']"
+																},
+																"sink": {
+																	"name": "printedOn",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "['returned']"
+																},
+																"sink": {
+																	"name": "returned",
+																	"type": "Boolean"
+																}
+															},
+															{
+																"source": {
+																	"path": "$['source_system']"
+																},
+																"sink": {
+																	"name": "source_system",
+																	"type": "String"
+																}
+															},
+															{
+																"source": {
+																	"path": "$['batch_id']"
+																},
+																"sink": {
+																	"name": "batch_id",
+																	"type": "String"
+																}
+															}
+														],
+														"collectionReference": "$['result']['data']['content']",
+														"mapComplexValuesToString": false
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_api_donna_nft_comm_print",
+														"type": "DatasetReference",
+														"parameters": {
+															"QueryParams": {
+																"value": "@replace(\n        variables('var_QueryParams')\n        , '&pageNo=0'\n        , concat('&pageNo=', item())\n    )",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_adls_parquet_target",
+														"type": "DatasetReference",
+														"parameters": {
+															"container": {
+																"value": "@pipeline().parameters.par_SourceSystem",
+																"type": "Expression"
+															},
+															"folder": {
+																"value": "@concat(pipeline().parameters.par_datafeed_stage[0].DestinationEntity\n,'/batch_ts='\n,pipeline().parameters.par_batch_ts\n)",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Set rowsCopied Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Copy API NFT Data to Blob Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsCopied",
+													"value": {
+														"value": "@string(\n    add(\n        int(variables('var_rowsCopied_Incremental'))\n        , activity('Copy API NFT Data to Blob Print').output.rowsCopied\n        )\n    )\n",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsRead Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsCopied Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													},
+													{
+														"activity": "Set rowsSkipped Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsRead",
+													"value": {
+														"value": "@string(\n    add(\n        int(variables('var_rowsRead_Incremental'))\n        , if(equals(activity('Copy API NFT Data to Blob Print').output.rowsSkipped,0)\n            , activity('Copy API NFT Data to Blob Print').output.rowsCopied\n            , sub(activity('Copy API NFT Data to Blob Print').output.rowsCopied, activity('Copy API NFT Data to Blob Print').output.rowsSkipped))\n        )\n    )\n",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsSkipped Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Copy API NFT Data to Blob Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsSkipped",
+													"value": {
+														"value": "@string(\n    add(\n        int(variables('var_rowsSkipped_Incremental'))\n        , activity('Copy API NFT Data to Blob Print').output.rowsSkipped\n        )\n    )",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsRead Incremental Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsRead Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsRead_Incremental",
+													"value": {
+														"value": "@variables('var_rowsRead')",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsSkipped Incremental Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsSkipped Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsSkipped_Incremental",
+													"value": {
+														"value": "@variables('var_rowsSkipped')",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set rowsCopied Incremental Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsCopied Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_rowsCopied_Incremental",
+													"value": {
+														"value": "@variables('var_rowsCopied')",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set execution Details Status Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set rowsRead Incremental Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													},
+													{
+														"activity": "Set rowsSkipped Incremental Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													},
+													{
+														"activity": "Set rowsCopied Incremental Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_executionDetails_Status",
+													"value": {
+														"value": "@if(\n    not(\n    equals(variables('var_executionDetails_Status_Final'), 'Succeeded'))\n    , variables('var_executionDetails_Status_Final')\n    , activity('Copy API NFT Data to Blob Print').output.executionDetails[0].status\n    )",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Set execution Details Status Final Print",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "Set execution Details Status Print",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "var_executionDetails_Status_Final",
+													"value": {
+														"value": "@variables('var_executionDetails_Status')",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "Wait 1 second",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set Output Return values",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "ForEach API Page",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "output_rowsCopied",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('var_rowsCopied_Incremental')"
+							}
+						},
+						{
+							"key": "output_rowsSkipped",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('var_rowsSkipped_Incremental')"
+							}
+						},
+						{
+							"key": "output_rowsRead",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('var_rowsRead_Incremental')"
+							}
+						},
+						{
+							"key": "output_executionDetails_Status",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('var_executionDetails_Status_Final')"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			},
+			{
+				"name": "Get Ping Token",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Get ping-client-id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get ping-client-secret",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": true
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@variables('var_url_auth_ping')",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "PENBISelfHostedIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"value": "grant_type=client_credentials&client_id=@{activity('Get ping-client-id').output.value}&client_secret=@{activity('Get ping-client-secret').output.value}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get ping-client-id",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set Feed Name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(pipeline().parameters.KeyVaultDNSName,'secrets/donna-ping-client-id/?api-version=7.0')",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"body": {
+						"simple": "body"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Get ping-client-secret",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set Feed Name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(pipeline().parameters.KeyVaultDNSName,'secrets/donna-ping-client-secret/?api-version=7.0')",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"body": {
+						"simple": "body"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Set var_modifiedDate",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get MicroSeconds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_modifiedDate",
+					"value": {
+						"value": "@if(or(not(pipeline().parameters.par_blob_folder_exists),empty(pipeline().parameters.par_modifiedDate))\n, variables('var_modifiedDate_InitiValue')\n, if(\n    equals(variables('var_modifiedDate_MicroSeconds'), '2000000')\n    , replace(addSeconds(pipeline().parameters.par_modifiedDate, 1), substring(pipeline().parameters.par_modifiedDate, 20, 6), '000000')\n    , replace(addSeconds(pipeline().parameters.par_modifiedDate, 0), substring(addSeconds(pipeline().parameters.par_modifiedDate, 0), 20, 6), substring(variables('var_modifiedDate_MicroSeconds'), 1,6))\n    )\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set QueryParams",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set var_modifiedDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_QueryParams",
+					"value": {
+						"value": "?fromModifiedOn=@{variables('var_modifiedDate')}&toModifiedOn=@{utcNow()}&pageNo=0&pageSize=@{pipeline().parameters.par_pageSize}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get MicroSeconds",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_modifiedDate_MicroSeconds",
+					"value": {
+						"value": "@if(empty(pipeline().parameters.par_modifiedDate)\n, '000000'\n, string(\n    add(\n        int(\n            substring(addSeconds(pipeline().parameters.par_modifiedDate, 0), 20, 6)\n            )\n    , 1000001)\n    )\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get NFT Page Count",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Get Ping Token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set QueryParams",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(\n    variables('var_url_donna_gateway')\n    , '/comms/v1/notification/'\n    , variables('var_feed_name')\n    , replace(variables('var_QueryParams'), '=10000', '=1')\n)",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "PENBISelfHostedIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@concat(string(activity('Get Ping Token').output.token_type),' ',string(activity('Get Ping Token').output.access_token))",
+							"type": "Expression"
+						},
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"groupNo": "564100",
+						"page": 1,
+						"createDate": "2023-01-14"
+					}
+				}
+			},
+			{
+				"name": "Set Feed Name",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "var_feed_name",
+					"value": {
+						"value": "@if(\n    contains(string(pipeline().parameters.par_datafeed_stage), 'donna_notification_print'), 'print'\n    ,if(\n        contains(string(pipeline().parameters.par_datafeed_stage), 'donna_notification_email'), 'email', '')\n    )",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Check if NFT Page Count Empty",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get NFT Page Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@empty(activity('Get NFT Page Count').output.result.data)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Save NFT Page Count",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_nft_page_count",
+								"value": {
+									"value": "@string(add(\n        div(activity('Get NFT Page Count').output.result.data.totalElements, pipeline().parameters.par_pageSize)\n        , 1)\n        )",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Save NFT Page Count 0",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "var_nft_page_count",
+								"value": {
+									"value": "@string(0)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"KeyVaultDNSName": {
+				"type": "string",
+				"defaultValue": "https://omacckordkv01.vault.azure.net/"
+			},
+			"par_modifiedDate": {
+				"type": "string",
+				"defaultValue": "2023-04-06T03:48:01Z"
+			},
+			"par_pageSize": {
+				"type": "int",
+				"defaultValue": 10000
+			},
+			"par_SourceSystem": {
+				"type": "string",
+				"defaultValue": "donna-comm-frm"
+			},
+			"par_batch_id": {
+				"type": "int",
+				"defaultValue": 125
+			},
+			"par_batch_ts": {
+				"type": "string",
+				"defaultValue": "20220101050000"
+			},
+			"par_datafeed_stage": {
+				"type": "array",
+				"defaultValue": [
+					{
+						"DataFeedStageId": 327,
+						"DataFeedId": 108,
+						"DataStage": "L0_Blob",
+						"SourceSchema": "donna-comm-frm",
+						"SourceEntity": "donna_notification_print",
+						"DestinationSchema": "donna-comm-frm",
+						"DestinationEntity": "raw/donna_notification_print",
+						"PipelineName": "pl_extract_source_to_adls",
+						"PipelineParameteres": null,
+						"Enabled": true
+					}
+				]
+			},
+			"par_blob_folder_exists": {
+				"type": "bool",
+				"defaultValue": true
+			}
+		},
+		"variables": {
+			"var_nft_page_count": {
+				"type": "String"
+			},
+			"var_nft_page": {
+				"type": "Array"
+			},
+			"var_rowsCopied": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsCopied_Incremental": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsSkipped": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsSkipped_Incremental": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsRead": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_rowsRead_Incremental": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"var_executionDetails_Status": {
+				"type": "String"
+			},
+			"var_executionDetails_Status_Final": {
+				"type": "String",
+				"defaultValue": "Succeeded"
+			},
+			"var_modifiedDate_InitiValue": {
+				"type": "String",
+				"defaultValue": "2021-01-01T00:00:00.000000Z"
+			},
+			"var_url_auth_ping": {
+				"type": "String",
+				"defaultValue": "https://fedengine-dev.non-prod-pen-gcp.omers.com/as/token.oauth2"
+			},
+			"var_url_donna_gateway": {
+				"type": "String",
+				"defaultValue": "https://dev-donna-api-gateway-internal.non-prod-pen-gcp.omers.com"
+			},
+			"var_modifiedDate": {
+				"type": "String"
+			},
+			"var_QueryParams": {
+				"type": "String",
+				"defaultValue": "?fromModifiedOn=2022-11-11T09:11:57.280549Z&toModifiedOn=2023-03-30T21:57:44.4912438Z&pageNo=0&pageSize=10000"
+			},
+			"var_modifiedDate_MicroSeconds": {
+				"type": "String"
+			},
+			"var_feed_name": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Data Extract"
+		},
+		"annotations": []
+	}
+}

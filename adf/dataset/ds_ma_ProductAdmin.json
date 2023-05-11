@@ -1,0 +1,15 @@
+{
+	"name": "ds_ma_ProductAdmin",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ma_product_admin",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "MicrosoftAccessTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": "`dual`"
+		}
+	}
+}

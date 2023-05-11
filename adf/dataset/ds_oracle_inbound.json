@@ -1,12 +1,12 @@
 {
-	"name": "ds_AzureSQL_Connect",
+	"name": "ds_oracle_inbound",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "ls_sql_korra",
+			"referenceName": "ls_oracle_penbi",
 			"type": "LinkedServiceReference"
 		},
 		"annotations": [],
-		"type": "AzureSqlTable",
+		"type": "OracleTable",
 		"schema": []
 	}
 }

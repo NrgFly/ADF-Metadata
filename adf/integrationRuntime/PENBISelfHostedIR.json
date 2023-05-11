@@ -1,0 +1,7 @@
+{
+	"name": "PENBISelfHostedIR",
+	"properties": {
+		"type": "SelfHosted",
+		"description": "PENBI Self-Hosted Integration Runtime"
+	}
+}

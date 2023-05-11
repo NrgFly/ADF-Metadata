@@ -1,0 +1,27 @@
+{
+	"name": "ds_api_donna_nft_comm_print",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_api_donna",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"oauth_provider": "ping"
+			}
+		},
+		"parameters": {
+			"QueryParams": {
+				"type": "string",
+				"defaultValue": "?fromModifiedOn=2022-11-11T09:11:57.280546Z&toModifiedOn=2022-11-11T09:11:57.280549Z&pageNo=0&pageSize=100"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@concat(\n    '/comms/v1/notification/print'\n    , dataset().QueryParams\n)",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	}
+}

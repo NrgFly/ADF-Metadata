@@ -1,0 +1,35 @@
+{
+	"name": "ls_api_donna",
+	"properties": {
+		"parameters": {
+			"oauth_provider": {
+				"type": "String",
+				"defaultValue": "ping"
+			}
+		},
+		"annotations": [],
+		"type": "RestService",
+		"typeProperties": {
+			"url": "https://dev-donna-api-gateway-internal.non-prod-pen-gcp.omers.com",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "OAuth2ClientCredential",
+			"clientId": "@{if(equals(linkedService().oauth_provider, 'ping')\n, 'penbi-donna-dev-svc'\n, 'penbi' )}",
+			"clientSecret": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_akv_korra",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": {
+					"value": "@{if(equals(linkedService().oauth_provider, 'ping')\n, 'donna-ping-client-secret'\n, 'donna-keycloak-client-secret' )}",
+					"type": "Expression"
+				}
+			},
+			"tokenEndpoint": "@{if(equals(linkedService().oauth_provider, 'ping')\n, 'https://fedengine-dev.non-prod-pen-gcp.omers.com/as/token.oauth2'\n, 'https://kc-dev-internal.non-prod-pen-gcp.omers.com/auth/realms/omers/protocol/openid-connect/token' )}"
+		},
+		"connectVia": {
+			"referenceName": "PENBISelfHostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
