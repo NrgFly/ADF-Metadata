@@ -2,7 +2,7 @@
 	"name": "ds_adls_parquet_source",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "ls_adls_penbi",
+			"referenceName": "ls_adls_adfmt",
 			"type": "LinkedServiceReference"
 		},
 		"parameters": {
