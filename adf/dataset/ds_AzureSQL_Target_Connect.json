@@ -1,5 +1,5 @@
 {
-	"name": "ds_AzureSQL_Connect",
+	"name": "ds_AzureSQL_Target_Connect",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_sql_adfmt_target",
