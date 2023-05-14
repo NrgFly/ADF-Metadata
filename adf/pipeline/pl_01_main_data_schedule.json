@@ -602,7 +602,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "ls_sql_korra",
+					"referenceName": "ls_sql_adfmt_target",
 					"type": "LinkedServiceReference"
 				}
 			},
@@ -642,7 +642,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "ls_sql_korra",
+					"referenceName": "ls_sql_adfmt_target",
 					"type": "LinkedServiceReference"
 				}
 			},
