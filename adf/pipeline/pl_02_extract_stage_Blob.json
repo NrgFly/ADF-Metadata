@@ -90,7 +90,7 @@
 									},
 									"logLocationSettings": {
 										"linkedServiceName": {
-											"referenceName": "ls_adls_penbi",
+											"referenceName": "ls_adls_adfmt",
 											"type": "LinkedServiceReference"
 										},
 										"path": "logs"
@@ -355,7 +355,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "ls_sql_korra",
+					"referenceName": "ls_sql_adfmt_target",
 					"type": "LinkedServiceReference"
 				}
 			},
@@ -409,7 +409,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "ls_sql_korra",
+					"referenceName": "ls_sql_adfmt_target",
 					"type": "LinkedServiceReference"
 				}
 			},
