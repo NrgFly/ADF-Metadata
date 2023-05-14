@@ -108,7 +108,7 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "ds_AzureSql_table",
+									"referenceName": "ds_AzureSQL_Target_Table",
 									"type": "DatasetReference",
 									"parameters": {
 										"schema": {
@@ -187,7 +187,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_AzureSQL_Connect",
+									"referenceName": "ds_AzureSQL_Target_Connect",
 									"type": "DatasetReference"
 								}
 							}

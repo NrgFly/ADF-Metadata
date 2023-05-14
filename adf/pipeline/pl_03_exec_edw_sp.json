@@ -106,7 +106,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_AzureSQL_Connect",
+						"referenceName": "ds_AzureSQL_Target_Connect",
 						"type": "DatasetReference"
 					}
 				}
@@ -213,7 +213,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_AzureSQL_Connect",
+									"referenceName": "ds_AzureSQL_Target_Connect",
 									"type": "DatasetReference"
 								}
 							}

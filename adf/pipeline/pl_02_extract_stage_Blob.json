@@ -69,7 +69,7 @@
 								"sink": {
 									"type": "ParquetSink",
 									"storeSettings": {
-										"type": "AzureBlobStorageWriteSettings"
+										"type": "AzureBlobFSWriteSettings"
 									},
 									"formatSettings": {
 										"type": "ParquetWriteSettings",
@@ -90,7 +90,7 @@
 									},
 									"logLocationSettings": {
 										"linkedServiceName": {
-											"referenceName": "ls_adls_adfmt",
+											"referenceName": "ls_adls_penbi",
 											"type": "LinkedServiceReference"
 										},
 										"path": "logs"
@@ -253,7 +253,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_AzureSQL_Connect",
+									"referenceName": "ds_AzureSQL_Target_Connect",
 									"type": "DatasetReference"
 								}
 							}
@@ -484,7 +484,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_AzureSQL_Connect",
+						"referenceName": "ds_AzureSQL_Target_Connect",
 						"type": "DatasetReference"
 					}
 				}
