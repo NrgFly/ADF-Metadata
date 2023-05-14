@@ -2,7 +2,7 @@
 	"name": "ds_AzureSQL_Source_Connect",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "ls_sql_adfmt_target",
+			"referenceName": "ls_sql_adfmt_source",
 			"type": "LinkedServiceReference"
 		},
 		"annotations": [],
