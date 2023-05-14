@@ -10,7 +10,7 @@
 					"referenceName": "ls_kvt_adfmt",
 					"type": "LinkedServiceReference"
 				},
-				"secretName": "azure-sql-connection-string"
+				"secretName": "azure-sql-connection-string-02"
 			}
 		}
 	}
