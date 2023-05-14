@@ -90,7 +90,7 @@
 									},
 									"logLocationSettings": {
 										"linkedServiceName": {
-											"referenceName": "ls_adls_adfmt",
+											"referenceName": "ls_adls_penbi",
 											"type": "LinkedServiceReference"
 										},
 										"path": "logs"
