@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy Source to Blob",
+				"name": "Copy Source to Blob Switch",
 				"type": "Switch",
 				"dependsOn": [
 					{
@@ -37,7 +37,7 @@
 					],
 					"defaultActivities": [
 						{
-							"name": "Copy MSS PSS to Blob",
+							"name": "Copy Source to Blob",
 							"type": "Copy",
 							"dependsOn": [
 								{
@@ -164,17 +164,17 @@
 							}
 						},
 						{
-							"name": "pl_02_extract_stage validate MSS",
+							"name": "pl_02_extract_stage validate",
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
 								},
 								{
-									"activity": "Set rowsSkipped MSS",
+									"activity": "Set rowsSkipped",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -193,18 +193,18 @@
 										"type": "Expression"
 									},
 									"par_execution_status": {
-										"value": "@activity('Copy MSS PSS to Blob').output.executionDetails[0].status",
+										"value": "@activity('Copy Source to Blob').output.executionDetails[0].status",
 										"type": "Expression"
 									}
 								}
 							}
 						},
 						{
-							"name": "Set rowsCopied MSS",
+							"name": "Set rowsCopied",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -214,17 +214,17 @@
 							"typeProperties": {
 								"variableName": "var_rowsCopied",
 								"value": {
-									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsCopied)",
+									"value": "@string(activity('Copy Source to Blob').output.rowsCopied)",
 									"type": "Expression"
 								}
 							}
 						},
 						{
-							"name": "Set rowsRead MSS",
+							"name": "Set rowsRead",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -234,17 +234,17 @@
 							"typeProperties": {
 								"variableName": "var_rowsRead",
 								"value": {
-									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsRead)",
+									"value": "@string(activity('Copy Source to Blob').output.rowsRead)",
 									"type": "Expression"
 								}
 							}
 						},
 						{
-							"name": "Set rowsSkipped MSS",
+							"name": "Set rowsSkipped",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -254,7 +254,7 @@
 							"typeProperties": {
 								"variableName": "var_rowsSkipped",
 								"value": {
-									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsSkipped)",
+									"value": "@string(activity('Copy Source to Blob').output.rowsSkipped)",
 									"type": "Expression"
 								}
 							}
@@ -339,7 +339,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Copy Source to Blob",
+						"activity": "Copy Source to Blob Switch",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -393,7 +393,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Copy Source to Blob",
+						"activity": "Copy Source to Blob Switch",
 						"dependencyConditions": [
 							"Failed"
 						]
