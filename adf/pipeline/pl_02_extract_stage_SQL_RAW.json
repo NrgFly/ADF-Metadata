@@ -45,7 +45,7 @@
 										}
 									],
 									"storeSettings": {
-										"type": "AzureBlobFSReadSettings",
+										"type": "AzureBlobStorageReadSettings",
 										"recursive": false,
 										"wildcardFolderPath": {
 											"value": "@concat(pipeline().parameters.par_datafeed_stage[0].SourceEntity\n,'/batch_ts='\n,pipeline().parameters.par_batch_ts\n)",
@@ -53,6 +53,9 @@
 										},
 										"wildcardFileName": "*.parquet",
 										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "ParquetReadSettings"
 									}
 								},
 								"sink": {
@@ -78,7 +81,7 @@
 									},
 									"logLocationSettings": {
 										"linkedServiceName": {
-											"referenceName": "ls_adls_penbi",
+											"referenceName": "ls_adls_adfmt",
 											"type": "LinkedServiceReference"
 										},
 										"path": "logs"
