@@ -42,7 +42,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"source": {
-									"type": "OracleSource",
+									"type": "AzureSqlSource",
 									"additionalColumns": [
 										{
 											"name": "source_system",
@@ -59,17 +59,13 @@
 											}
 										}
 									],
-									"oracleReaderQuery": {
-										"value": "@variables('var_source_query')",
-										"type": "Expression"
-									},
-									"partitionOption": "None",
-									"queryTimeout": "02:00:00"
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
 								},
 								"sink": {
 									"type": "ParquetSink",
 									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
+										"type": "AzureBlobStorageWriteSettings"
 									},
 									"formatSettings": {
 										"type": "ParquetWriteSettings",
@@ -82,21 +78,21 @@
 								},
 								"enableStaging": false,
 								"enableSkipIncompatibleRow": true,
-								"logSettings": {
-									"enableCopyActivityLog": true,
-									"copyActivityLogSettings": {
-										"logLevel": "Warning",
-										"enableReliableLogging": false
-									},
-									"logLocationSettings": {
-										"linkedServiceName": {
-											"referenceName": "ls_adls_penbi",
-											"type": "LinkedServiceReference"
-										},
-										"path": "logs"
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
 									}
 								}
 							},
+							"inputs": [
+								{
+									"referenceName": "ds_AzureSQL_Source_Connect",
+									"type": "DatasetReference"
+								}
+							],
 							"outputs": [
 								{
 									"referenceName": "ds_adls_parquet_target",
