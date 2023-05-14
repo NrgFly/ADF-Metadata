@@ -16,10 +16,25 @@
 				"userProperties": [],
 				"typeProperties": {
 					"on": {
-						"value": "@if(equals(pipeline().parameters.par_DataFeedType,'custom'),'custom',concat(pipeline().parameters.par_SourceSystem,' - ',pipeline().parameters.par_DataFeedType))",
+						"value": "@concat(pipeline().parameters.par_SourceSystem,' - ',pipeline().parameters.par_DataFeedType)",
 						"type": "Expression"
 					},
-					"cases": [],
+					"cases": [
+						{
+							"value": "Other",
+							"activities": [
+								{
+									"name": "Wait 1 second",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							]
+						}
+					],
 					"defaultActivities": [
 						{
 							"name": "Copy MSS PSS to Blob",
@@ -59,6 +74,10 @@
 											}
 										}
 									],
+									"sqlReaderQuery": {
+										"value": "@variables('var_source_query')",
+										"type": "Expression"
+									},
 									"queryTimeout": "02:00:00",
 									"partitionOption": "None"
 								},
@@ -78,6 +97,20 @@
 								},
 								"enableStaging": false,
 								"enableSkipIncompatibleRow": true,
+								"logSettings": {
+									"enableCopyActivityLog": true,
+									"copyActivityLogSettings": {
+										"logLevel": "Warning",
+										"enableReliableLogging": false
+									},
+									"logLocationSettings": {
+										"linkedServiceName": {
+											"referenceName": "ls_adls_adfmt",
+											"type": "LinkedServiceReference"
+										},
+										"path": "logs"
+									}
+								},
 								"translator": {
 									"type": "TabularTranslator",
 									"typeConversion": true,
