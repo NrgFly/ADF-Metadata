@@ -275,7 +275,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "select string_agg(convert(nvarchar(max),sourcecolumn),',') as col_list \nfrom cfg.ColumnMetadata  \nwhere DataFeedStageId=@{add(pipeline().parameters.par_datafeed_stage[0].DataFeedStageId,2)}\n  and Enabled <> 0",
+										"value": "select string_agg(convert(nvarchar(max),sourcecolumn),',') as col_list \nfrom cfg.ColumnMetadata  \nwhere DataFeedStageId=@{pipeline().parameters.par_datafeed_stage[0].DataFeedStageId}\n  and Enabled <> 0",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
