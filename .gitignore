@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/sql/metadata-sql/.vs/metadata-sql/v16
+/sql/metadata-sql/bin/Debug
+/sql/metadata-sql/obj/Debug

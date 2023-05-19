@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>metadata_sql</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{f3510051-6643-445c-9981-68effe0d4e32}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath>
+    </RootPath>
+    <RootNamespace>metadata_sql</RootNamespace>
+    <AssemblyName>metadata_sql</AssemblyName>
+    <ModelCollation>1033, CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="SalesLT\" />
+    <Folder Include="SalesLT\Tables\" />
+    <Folder Include="Security\" />
+    <Folder Include="stg\" />
+    <Folder Include="stg\Tables\" />
+    <Folder Include="raw\" />
+    <Folder Include="raw\Tables\" />
+    <Folder Include="edw\" />
+    <Folder Include="edw\Tables\" />
+    <Folder Include="cfg\" />
+    <Folder Include="cfg\Tables\" />
+    <Folder Include="edw\Stored Procedures\" />
+    <Folder Include="cfg\Stored Procedures\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="SalesLT\Tables\SalesOrderHeader.sql" />
+    <Build Include="SalesLT\Tables\SalesOrderDetail.sql" />
+    <Build Include="SalesLT\Tables\Product.sql" />
+    <Build Include="SalesLT\Tables\Customer.sql" />
+    <Build Include="Security\SalesLT.sql" />
+    <Build Include="stg\Tables\SalesOrderHeader.sql" />
+    <Build Include="stg\Tables\SalesOrderDetail.sql" />
+    <Build Include="stg\Tables\Product.sql" />
+    <Build Include="stg\Tables\Customer.sql" />
+    <Build Include="raw\Tables\SalesOrderHeader.sql" />
+    <Build Include="raw\Tables\SalesOrderDetail.sql" />
+    <Build Include="raw\Tables\Product.sql" />
+    <Build Include="raw\Tables\Customer.sql" />
+    <Build Include="edw\Tables\FactInternetSales.sql" />
+    <Build Include="edw\Tables\DimProduct.sql" />
+    <Build Include="edw\Tables\DimCustomer.sql" />
+    <Build Include="edw\Tables\DimDate.sql" />
+    <Build Include="cfg\Tables\MasterBatchExecutionLog.sql" />
+    <Build Include="cfg\Tables\DataFeedDependencyExecutionLog.sql" />
+    <Build Include="cfg\Tables\DataFeedDependency.sql" />
+    <Build Include="cfg\Tables\DataFeedDependencyExecutionLog_History.sql" />
+    <Build Include="cfg\Tables\DataFeedStagesExecutionLog.sql" />
+    <Build Include="cfg\Tables\Schedule.sql" />
+    <Build Include="cfg\Tables\DataFeedExecutionLog.sql" />
+    <Build Include="cfg\Tables\ColumnMetadata.sql" />
+    <Build Include="cfg\Tables\DataFeedStages.sql" />
+    <Build Include="cfg\Tables\DataFeed.sql" />
+    <Build Include="edw\Stored Procedures\Load_FactInternetSales.sql" />
+    <Build Include="edw\Stored Procedures\Load_DimProduct.sql" />
+    <Build Include="edw\Stored Procedures\Load_DimCustomer.sql" />
+    <Build Include="cfg\Stored Procedures\CreateFeedExecution.sql" />
+    <Build Include="cfg\Stored Procedures\UpdateTableTimestamp.sql" />
+    <Build Include="cfg\Stored Procedures\UpdateFeedStageExecutionLog.sql" />
+    <Build Include="cfg\Stored Procedures\UpdateFeedExecutionLog.sql" />
+    <Build Include="cfg\Stored Procedures\UpdateFeedDependencyExecutionLog.sql" />
+    <Build Include="cfg\Stored Procedures\GetFeedExecutionStage.sql" />
+    <Build Include="cfg\Stored Procedures\GetFeedDependencyStatus.sql" />
+    <Build Include="cfg\Stored Procedures\GetColumnMapping.sql" />
+    <Build Include="cfg\Stored Procedures\CreateMasterBatch.sql" />
+    <Build Include="cfg\Stored Procedures\CreateFeedStageExecution.sql" />
+    <Build Include="cfg\Stored Procedures\CreateFeedDependencyExecution.sql" />
+    <Build Include="cfg\Stored Procedures\UpdateMasterBatch.sql" />
+    <Build Include="Security\stg.sql" />
+    <Build Include="Security\raw.sql" />
+    <Build Include="Security\edw.sql" />
+    <Build Include="Security\cfg.sql" />
+  </ItemGroup>
+</Project>
