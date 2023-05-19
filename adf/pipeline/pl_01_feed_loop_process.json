@@ -115,7 +115,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_AzureSQL_Connect",
+									"referenceName": "ds_AzureSQL_Target_Connect",
 									"type": "DatasetReference"
 								},
 								"firstRowOnly": true
@@ -171,7 +171,7 @@
 								}
 							},
 							"linkedServiceName": {
-								"referenceName": "ls_sql_korra",
+								"referenceName": "ls_sql_adfmt_target",
 								"type": "LinkedServiceReference"
 							}
 						},
@@ -225,7 +225,7 @@
 								}
 							},
 							"linkedServiceName": {
-								"referenceName": "ls_sql_korra",
+								"referenceName": "ls_sql_adfmt_target",
 								"type": "LinkedServiceReference"
 							}
 						},
@@ -289,7 +289,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_AzureSQL_Connect",
+									"referenceName": "ds_AzureSQL_Target_Connect",
 									"type": "DatasetReference"
 								}
 							}
@@ -344,7 +344,7 @@
 								}
 							},
 							"linkedServiceName": {
-								"referenceName": "ls_sql_korra",
+								"referenceName": "ls_sql_adfmt_target",
 								"type": "LinkedServiceReference"
 							}
 						},
@@ -398,7 +398,7 @@
 								}
 							},
 							"linkedServiceName": {
-								"referenceName": "ls_sql_korra",
+								"referenceName": "ls_sql_adfmt_target",
 								"type": "LinkedServiceReference"
 							}
 						}

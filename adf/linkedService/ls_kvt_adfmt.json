@@ -1,10 +1,10 @@
 {
-	"name": "ls_akv_korra",
+	"name": "ls_kvt_adfmt",
 	"properties": {
 		"annotations": [],
 		"type": "AzureKeyVault",
 		"typeProperties": {
-			"baseUrl": "https://omacckordkv01.vault.azure.net/"
+			"baseUrl": "https://adfmt-cc-dev-kvt-01.vault.azure.net/"
 		}
 	}
 }

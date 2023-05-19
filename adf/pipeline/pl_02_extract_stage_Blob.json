@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy Source to Blob",
+				"name": "Copy Source to Blob Switch",
 				"type": "Switch",
 				"dependsOn": [
 					{
@@ -16,13 +16,28 @@
 				"userProperties": [],
 				"typeProperties": {
 					"on": {
-						"value": "@if(equals(pipeline().parameters.par_DataFeedType,'custom'),'custom',concat(pipeline().parameters.par_SourceSystem,' - ',pipeline().parameters.par_DataFeedType))",
+						"value": "@concat(pipeline().parameters.par_SourceSystem,' - ',pipeline().parameters.par_DataFeedType)",
 						"type": "Expression"
 					},
-					"cases": [],
+					"cases": [
+						{
+							"value": "Other",
+							"activities": [
+								{
+									"name": "Wait 1 second",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							]
+						}
+					],
 					"defaultActivities": [
 						{
-							"name": "Copy MSS PSS to Blob",
+							"name": "Copy Source to Blob",
 							"type": "Copy",
 							"dependsOn": [
 								{
@@ -42,7 +57,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"source": {
-									"type": "OracleSource",
+									"type": "AzureSqlSource",
 									"additionalColumns": [
 										{
 											"name": "source_system",
@@ -59,17 +74,17 @@
 											}
 										}
 									],
-									"oracleReaderQuery": {
+									"sqlReaderQuery": {
 										"value": "@variables('var_source_query')",
 										"type": "Expression"
 									},
-									"partitionOption": "None",
-									"queryTimeout": "02:00:00"
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
 								},
 								"sink": {
 									"type": "ParquetSink",
 									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
+										"type": "AzureBlobStorageWriteSettings"
 									},
 									"formatSettings": {
 										"type": "ParquetWriteSettings",
@@ -90,13 +105,27 @@
 									},
 									"logLocationSettings": {
 										"linkedServiceName": {
-											"referenceName": "ls_adls_penbi",
+											"referenceName": "ls_adls_adfmt",
 											"type": "LinkedServiceReference"
 										},
 										"path": "logs"
 									}
+								},
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
 								}
 							},
+							"inputs": [
+								{
+									"referenceName": "ds_AzureSQL_Source_Connect",
+									"type": "DatasetReference"
+								}
+							],
 							"outputs": [
 								{
 									"referenceName": "ds_adls_parquet_target",
@@ -129,23 +158,23 @@
 							"typeProperties": {
 								"variableName": "var_source_query",
 								"value": {
-									"value": "select @{variables('var_source_colums')}\nfrom @{pipeline().parameters.par_datafeed_stage[0].SourceSchema}.@{pipeline().parameters.par_datafeed_stage[0].SourceEntity}\nwhere (@{if(equals(pipeline().parameters.par_DataFeedType, 'incremental'),if(or(not(activity('Check If Feed Blob Folder exists').output.exists),empty(pipeline().parameters.par_TimestampValue)), '1=1',concat(pipeline().parameters.par_TimestampColumn, '> TO_TIMESTAMP('''\n,replace(replace(pipeline().parameters.par_TimestampValue,'T',' '),'Z','')\n,''', ''YYYY-MM-DD HH24:MI:SS.FF'')')),'1=1')})\n--and rownum < 50",
+									"value": "select @{variables('var_source_colums')}\nfrom @{pipeline().parameters.par_datafeed_stage[0].SourceSchema}.@{pipeline().parameters.par_datafeed_stage[0].SourceEntity}\nwhere (@{if(or(not(activity('Check If Feed Blob Folder exists').output.exists),empty(pipeline().parameters.par_TimestampValue))\n                    , '1=1'\n                    , concat(\n                        pipeline().parameters.par_TimestampColumn\n                        , '> '''\n                        ,replace(replace(pipeline().parameters.par_TimestampValue,'T',' '),'Z','')\n                        ,''''\n                        )\n                    )})",
 									"type": "Expression"
 								}
 							}
 						},
 						{
-							"name": "pl_02_extract_stage validate MSS",
+							"name": "pl_02_extract_stage validate",
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
 								},
 								{
-									"activity": "Set rowsSkipped MSS",
+									"activity": "Set rowsSkipped",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -164,18 +193,18 @@
 										"type": "Expression"
 									},
 									"par_execution_status": {
-										"value": "@activity('Copy MSS PSS to Blob').output.executionDetails[0].status",
+										"value": "@activity('Copy Source to Blob').output.executionDetails[0].status",
 										"type": "Expression"
 									}
 								}
 							}
 						},
 						{
-							"name": "Set rowsCopied MSS",
+							"name": "Set rowsCopied",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -185,17 +214,17 @@
 							"typeProperties": {
 								"variableName": "var_rowsCopied",
 								"value": {
-									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsCopied)",
+									"value": "@string(activity('Copy Source to Blob').output.rowsCopied)",
 									"type": "Expression"
 								}
 							}
 						},
 						{
-							"name": "Set rowsRead MSS",
+							"name": "Set rowsRead",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -205,17 +234,17 @@
 							"typeProperties": {
 								"variableName": "var_rowsRead",
 								"value": {
-									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsRead)",
+									"value": "@string(activity('Copy Source to Blob').output.rowsRead)",
 									"type": "Expression"
 								}
 							}
 						},
 						{
-							"name": "Set rowsSkipped MSS",
+							"name": "Set rowsSkipped",
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Copy MSS PSS to Blob",
+									"activity": "Copy Source to Blob",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -225,7 +254,7 @@
 							"typeProperties": {
 								"variableName": "var_rowsSkipped",
 								"value": {
-									"value": "@string(activity('Copy MSS PSS to Blob').output.rowsSkipped)",
+									"value": "@string(activity('Copy Source to Blob').output.rowsSkipped)",
 									"type": "Expression"
 								}
 							}
@@ -253,7 +282,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "ds_AzureSQL_Connect",
+									"referenceName": "ds_AzureSQL_Target_Connect",
 									"type": "DatasetReference"
 								}
 							}
@@ -310,7 +339,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Copy Source to Blob",
+						"activity": "Copy Source to Blob Switch",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -355,7 +384,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "ls_sql_korra",
+					"referenceName": "ls_sql_adfmt_target",
 					"type": "LinkedServiceReference"
 				}
 			},
@@ -364,7 +393,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Copy Source to Blob",
+						"activity": "Copy Source to Blob Switch",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -409,7 +438,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "ls_sql_korra",
+					"referenceName": "ls_sql_adfmt_target",
 					"type": "LinkedServiceReference"
 				}
 			},
@@ -484,7 +513,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_AzureSQL_Connect",
+						"referenceName": "ds_AzureSQL_Target_Connect",
 						"type": "DatasetReference"
 					}
 				}
